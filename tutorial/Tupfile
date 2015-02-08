@@ -1,0 +1,10 @@
+
+include_rules
+
+include $(COMPILE_TUP)
+
+: foreach *.c |> !cc |>
+
+include $(LINK_TUP)
+
+: ./*.o |> !linker |> bbfs

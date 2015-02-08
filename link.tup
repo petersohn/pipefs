@@ -1,0 +1,10 @@
+
+export EXTRA_LD_FLAGS
+
+LIBS += -lpthread
+LIBS += -lfuse
+LIBS += @(PROFILER_LIBS)
+
+LD_FLAGS += $EXTRA_LD_FLAGS
+
+!linker = |> ^ LD %o^ $(LD) $(LD_FLAGS) %f $(LIBS) -o %o |>

@@ -1,0 +1,18 @@
+
+export EXTRA_CPP_FLAGS
+
+COMMON_FLAGS += @(OPTIMALIZATION_FLAG)
+COMMON_FLAGS += -D_FILE_OFFSET_BITS=64
+
+C_FLAGS += $(COMMON_FLAGS)
+
+CPP_FLAGS += $(COMMON_FLAGS)
+CPP_FLAGS += -std=c++11
+CPP_FLAGS += -ftemplate-backtrace-limit=0
+CPP_FLAGS += $EXTRA_CPP_FLAGS
+
+INCLUDE_DIRS += -I$(SOURCE_DIR)
+INCLUDE_DIRS += -I$(CPP_UTIL_DIR)/include
+
+!cc = |> ^ CC %f^ $(CC) $(C_FLAGS) $(INCLUDE_DIRS) -c %f -o %o |> %B.o
+!cxx = |> ^ CXX %f^ $(CXX) $(CPP_FLAGS) $(INCLUDE_DIRS) -c %f -o %o |> %B.o
