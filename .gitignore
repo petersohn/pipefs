@@ -1,4 +1,5 @@
 build-*
 bbfs.log
 .tup
+/custom
 
