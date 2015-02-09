@@ -118,11 +118,11 @@ void log_conn(struct fuse_conn_info *conn)
 
     /** Maximum number of backgrounded requests */
     // unsigned max_background;
-    log_struct(conn, max_background, %d, );
+    //log_struct(conn, max_background, %d, );
 
     /** Kernel congestion threshold parameter */
     // unsigned congestion_threshold;
-    log_struct(conn, congestion_threshold, %d, );
+    //log_struct(conn, congestion_threshold, %d, );
 
     /** For future use. */
     // unsigned reserved[23];
