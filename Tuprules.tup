@@ -12,4 +12,5 @@ LINK_TUP = $(TUP_CWD)/link.tup
 TEST_TUP = $(TUP_CWD)/test.tup
 
 TUTORIAL_DIR = $(TUP_CWD)/tutorial
+SOURCE_DIR = $(TUP_CWD)/src
 

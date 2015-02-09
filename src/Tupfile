@@ -1,0 +1,6 @@
+
+include_rules
+include $(COMPILE_TUP)
+
+: foreach *.c |> !cc |>
+
