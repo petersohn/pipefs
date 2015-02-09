@@ -17,7 +17,7 @@
 
 
 // Report errors to logfile and give -errno to caller
-static int bb_error(char *str)
+static int pipefs_error(char *str)
 {
     int ret = -errno;
     log_msg("    ERROR %s: %s\n", str, strerror(errno));
@@ -31,13 +31,13 @@ static int bb_error(char *str)
 //  have the mountpoint.  I'll save it away early on in main(), and then
 //  whenever I need a path for something I'll call this to construct
 //  it.
-static void bb_fullpath(char fpath[PATH_MAX], const char *path)
+static void pipefs_fullpath(char fpath[PATH_MAX], const char *path)
 {
     strcpy(fpath, GET_DATA->rootdir);
     strncat(fpath, path, PATH_MAX); // ridiculously long paths will
 				    // break here
 
-    log_msg("    bb_fullpath:  rootdir = \"%s\", path = \"%s\", fpath = \"%s\"\n",
+    log_msg("    pipefs_fullpath:  rootdir = \"%s\", path = \"%s\", fpath = \"%s\"\n",
 	    GET_DATA->rootdir, path, fpath);
 }
 
@@ -52,18 +52,18 @@ static void bb_fullpath(char fpath[PATH_MAX], const char *path)
  * ignored.  The 'st_ino' field is ignored except if the 'use_ino'
  * mount option is given.
  */
-int bb_getattr(const char *path, struct stat *statbuf)
+int pipefs_getattr(const char *path, struct stat *statbuf)
 {
     int retstat = 0;
     char fpath[PATH_MAX];
 
     log_msg("\nbb_getattr(path=\"%s\", statbuf=0x%08x)\n",
 	  path, statbuf);
-    bb_fullpath(fpath, path);
+    pipefs_fullpath(fpath, path);
 
     retstat = lstat(fpath, statbuf);
     if (retstat != 0)
-	retstat = bb_error("bb_getattr lstat");
+	retstat = pipefs_error("pipefs_getattr lstat");
 
     return retstat;
 }
@@ -78,20 +78,20 @@ int bb_getattr(const char *path, struct stat *statbuf)
  */
 // Note the system readlink() will truncate and lose the terminating
 // null.  So, the size passed to to the system readlink() must be one
-// less than the size passed to bb_readlink()
-// bb_readlink() code by Bernardo F Costa (thanks!)
-int bb_readlink(const char *path, char *link, size_t size)
+// less than the size passed to pipefs_readlink()
+// pipefs_readlink() code by Bernardo F Costa (thanks!)
+int pipefs_readlink(const char *path, char *link, size_t size)
 {
     int retstat = 0;
     char fpath[PATH_MAX];
 
-    log_msg("bb_readlink(path=\"%s\", link=\"%s\", size=%d)\n",
+    log_msg("pipefs_readlink(path=\"%s\", link=\"%s\", size=%d)\n",
 	  path, link, size);
-    bb_fullpath(fpath, path);
+    pipefs_fullpath(fpath, path);
 
     retstat = readlink(fpath, link, size - 1);
     if (retstat < 0)
-	retstat = bb_error("bb_readlink readlink");
+	retstat = pipefs_error("pipefs_readlink readlink");
     else  {
 	link[retstat] = '\0';
 	retstat = 0;
@@ -106,87 +106,87 @@ int bb_readlink(const char *path, char *link, size_t size)
  * creation of all non-directory, non-symlink nodes.
  */
 // shouldn't that comment be "if" there is no.... ?
-int bb_mknod(const char *path, mode_t mode, dev_t dev)
+int pipefs_mknod(const char *path, mode_t mode, dev_t dev)
 {
     int retstat = 0;
     char fpath[PATH_MAX];
 
     log_msg("\nbb_mknod(path=\"%s\", mode=0%3o, dev=%lld)\n",
 	  path, mode, dev);
-    bb_fullpath(fpath, path);
+    pipefs_fullpath(fpath, path);
 
     // On Linux this could just be 'mknod(path, mode, rdev)' but this
     //  is more portable
     if (S_ISREG(mode)) {
         retstat = open(fpath, O_CREAT | O_EXCL | O_WRONLY, mode);
 	if (retstat < 0)
-	    retstat = bb_error("bb_mknod open");
+	    retstat = pipefs_error("pipefs_mknod open");
         else {
             retstat = close(retstat);
 	    if (retstat < 0)
-		retstat = bb_error("bb_mknod close");
+		retstat = pipefs_error("pipefs_mknod close");
 	}
     } else
 	if (S_ISFIFO(mode)) {
 	    retstat = mkfifo(fpath, mode);
 	    if (retstat < 0)
-		retstat = bb_error("bb_mknod mkfifo");
+		retstat = pipefs_error("pipefs_mknod mkfifo");
 	} else {
 	    retstat = mknod(fpath, mode, dev);
 	    if (retstat < 0)
-		retstat = bb_error("bb_mknod mknod");
+		retstat = pipefs_error("pipefs_mknod mknod");
 	}
 
     return retstat;
 }
 
 /** Create a directory */
-int bb_mkdir(const char *path, mode_t mode)
+int pipefs_mkdir(const char *path, mode_t mode)
 {
     int retstat = 0;
     char fpath[PATH_MAX];
 
     log_msg("\nbb_mkdir(path=\"%s\", mode=0%3o)\n",
 	    path, mode);
-    bb_fullpath(fpath, path);
+    pipefs_fullpath(fpath, path);
 
     retstat = mkdir(fpath, mode);
     if (retstat < 0)
-	retstat = bb_error("bb_mkdir mkdir");
+	retstat = pipefs_error("pipefs_mkdir mkdir");
 
     return retstat;
 }
 
 /** Remove a file */
-int bb_unlink(const char *path)
+int pipefs_unlink(const char *path)
 {
     int retstat = 0;
     char fpath[PATH_MAX];
 
-    log_msg("bb_unlink(path=\"%s\")\n",
+    log_msg("pipefs_unlink(path=\"%s\")\n",
 	    path);
-    bb_fullpath(fpath, path);
+    pipefs_fullpath(fpath, path);
 
     retstat = unlink(fpath);
     if (retstat < 0)
-	retstat = bb_error("bb_unlink unlink");
+	retstat = pipefs_error("pipefs_unlink unlink");
 
     return retstat;
 }
 
 /** Remove a directory */
-int bb_rmdir(const char *path)
+int pipefs_rmdir(const char *path)
 {
     int retstat = 0;
     char fpath[PATH_MAX];
 
-    log_msg("bb_rmdir(path=\"%s\")\n",
+    log_msg("pipefs_rmdir(path=\"%s\")\n",
 	    path);
-    bb_fullpath(fpath, path);
+    pipefs_fullpath(fpath, path);
 
     retstat = rmdir(fpath);
     if (retstat < 0)
-	retstat = bb_error("bb_rmdir rmdir");
+	retstat = pipefs_error("pipefs_rmdir rmdir");
 
     return retstat;
 }
@@ -196,25 +196,25 @@ int bb_rmdir(const char *path)
 // to the symlink() system call.  The 'path' is where the link points,
 // while the 'link' is the link itself.  So we need to leave the path
 // unaltered, but insert the link into the mounted directory.
-int bb_symlink(const char *path, const char *link)
+int pipefs_symlink(const char *path, const char *link)
 {
     int retstat = 0;
     char flink[PATH_MAX];
 
     log_msg("\nbb_symlink(path=\"%s\", link=\"%s\")\n",
 	    path, link);
-    bb_fullpath(flink, link);
+    pipefs_fullpath(flink, link);
 
     retstat = symlink(path, flink);
     if (retstat < 0)
-	retstat = bb_error("bb_symlink symlink");
+	retstat = pipefs_error("pipefs_symlink symlink");
 
     return retstat;
 }
 
 /** Rename a file */
 // both path and newpath are fs-relative
-int bb_rename(const char *path, const char *newpath)
+int pipefs_rename(const char *path, const char *newpath)
 {
     int retstat = 0;
     char fpath[PATH_MAX];
@@ -222,53 +222,53 @@ int bb_rename(const char *path, const char *newpath)
 
     log_msg("\nbb_rename(fpath=\"%s\", newpath=\"%s\")\n",
 	    path, newpath);
-    bb_fullpath(fpath, path);
-    bb_fullpath(fnewpath, newpath);
+    pipefs_fullpath(fpath, path);
+    pipefs_fullpath(fnewpath, newpath);
 
     retstat = rename(fpath, fnewpath);
     if (retstat < 0)
-	retstat = bb_error("bb_rename rename");
+	retstat = pipefs_error("pipefs_rename rename");
 
     return retstat;
 }
 
 /** Create a hard link to a file */
-int bb_link(const char *path, const char *newpath)
+int pipefs_link(const char *path, const char *newpath)
 {
     int retstat = 0;
     char fpath[PATH_MAX], fnewpath[PATH_MAX];
 
     log_msg("\nbb_link(path=\"%s\", newpath=\"%s\")\n",
 	    path, newpath);
-    bb_fullpath(fpath, path);
-    bb_fullpath(fnewpath, newpath);
+    pipefs_fullpath(fpath, path);
+    pipefs_fullpath(fnewpath, newpath);
 
     retstat = link(fpath, fnewpath);
     if (retstat < 0)
-	retstat = bb_error("bb_link link");
+	retstat = pipefs_error("pipefs_link link");
 
     return retstat;
 }
 
 /** Change the permission bits of a file */
-int bb_chmod(const char *path, mode_t mode)
+int pipefs_chmod(const char *path, mode_t mode)
 {
     int retstat = 0;
     char fpath[PATH_MAX];
 
     log_msg("\nbb_chmod(fpath=\"%s\", mode=0%03o)\n",
 	    path, mode);
-    bb_fullpath(fpath, path);
+    pipefs_fullpath(fpath, path);
 
     retstat = chmod(fpath, mode);
     if (retstat < 0)
-	retstat = bb_error("bb_chmod chmod");
+	retstat = pipefs_error("pipefs_chmod chmod");
 
     return retstat;
 }
 
 /** Change the owner and group of a file */
-int bb_chown(const char *path, uid_t uid, gid_t gid)
+int pipefs_chown(const char *path, uid_t uid, gid_t gid)
 
 {
     int retstat = 0;
@@ -276,46 +276,46 @@ int bb_chown(const char *path, uid_t uid, gid_t gid)
 
     log_msg("\nbb_chown(path=\"%s\", uid=%d, gid=%d)\n",
 	    path, uid, gid);
-    bb_fullpath(fpath, path);
+    pipefs_fullpath(fpath, path);
 
     retstat = chown(fpath, uid, gid);
     if (retstat < 0)
-	retstat = bb_error("bb_chown chown");
+	retstat = pipefs_error("pipefs_chown chown");
 
     return retstat;
 }
 
 /** Change the size of a file */
-int bb_truncate(const char *path, off_t newsize)
+int pipefs_truncate(const char *path, off_t newsize)
 {
     int retstat = 0;
     char fpath[PATH_MAX];
 
     log_msg("\nbb_truncate(path=\"%s\", newsize=%lld)\n",
 	    path, newsize);
-    bb_fullpath(fpath, path);
+    pipefs_fullpath(fpath, path);
 
     retstat = truncate(fpath, newsize);
     if (retstat < 0)
-	bb_error("bb_truncate truncate");
+	pipefs_error("pipefs_truncate truncate");
 
     return retstat;
 }
 
 /** Change the access and/or modification times of a file */
 /* note -- I'll want to change this as soon as 2.6 is in debian testing */
-int bb_utime(const char *path, struct utimbuf *ubuf)
+int pipefs_utime(const char *path, struct utimbuf *ubuf)
 {
     int retstat = 0;
     char fpath[PATH_MAX];
 
     log_msg("\nbb_utime(path=\"%s\", ubuf=0x%08x)\n",
 	    path, ubuf);
-    bb_fullpath(fpath, path);
+    pipefs_fullpath(fpath, path);
 
     retstat = utime(fpath, ubuf);
     if (retstat < 0)
-	retstat = bb_error("bb_utime utime");
+	retstat = pipefs_error("pipefs_utime utime");
 
     return retstat;
 }
@@ -330,7 +330,7 @@ int bb_utime(const char *path, struct utimbuf *ubuf)
  *
  * Changed in version 2.2
  */
-int bb_open(const char *path, struct fuse_file_info *fi)
+int pipefs_open(const char *path, struct fuse_file_info *fi)
 {
     int retstat = 0;
     int fd;
@@ -338,11 +338,11 @@ int bb_open(const char *path, struct fuse_file_info *fi)
 
     log_msg("\nbb_open(path\"%s\", fi=0x%08x)\n",
 	    path, fi);
-    bb_fullpath(fpath, path);
+    pipefs_fullpath(fpath, path);
 
     fd = open(fpath, fi->flags);
     if (fd < 0)
-	retstat = bb_error("bb_open open");
+	retstat = pipefs_error("pipefs_open open");
 
     fi->fh = fd;
 
@@ -365,7 +365,7 @@ int bb_open(const char *path, struct fuse_file_info *fi)
 // can return with anything up to the amount of data requested. nor
 // with the fusexmp code which returns the amount of data also
 // returned by read.
-int bb_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+int pipefs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
     int retstat = 0;
 
@@ -374,7 +374,7 @@ int bb_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_
 
     retstat = pread(fi->fh, buf, size, offset);
     if (retstat < 0)
-	retstat = bb_error("bb_read read");
+	retstat = pipefs_error("pipefs_read read");
 
     return retstat;
 }
@@ -389,7 +389,7 @@ int bb_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_
  */
 // As  with read(), the documentation above is inconsistent with the
 // documentation for the write() system call.
-int bb_write(const char *path, const char *buf, size_t size, off_t offset,
+int pipefs_write(const char *path, const char *buf, size_t size, off_t offset,
 	     struct fuse_file_info *fi)
 {
     int retstat = 0;
@@ -400,7 +400,7 @@ int bb_write(const char *path, const char *buf, size_t size, off_t offset,
 
     retstat = pwrite(fi->fh, buf, size, offset);
     if (retstat < 0)
-	retstat = bb_error("bb_write pwrite");
+	retstat = pipefs_error("pipefs_write pwrite");
 
     return retstat;
 }
@@ -412,19 +412,19 @@ int bb_write(const char *path, const char *buf, size_t size, off_t offset,
  * Replaced 'struct statfs' parameter with 'struct statvfs' in
  * version 2.5
  */
-int bb_statfs(const char *path, struct statvfs *statv)
+int pipefs_statfs(const char *path, struct statvfs *statv)
 {
     int retstat = 0;
     char fpath[PATH_MAX];
 
     log_msg("\nbb_statfs(path=\"%s\", statv=0x%08x)\n",
 	    path, statv);
-    bb_fullpath(fpath, path);
+    pipefs_fullpath(fpath, path);
 
     // get stats for underlying filesystem
     retstat = statvfs(fpath, statv);
     if (retstat < 0)
-	retstat = bb_error("bb_statfs statvfs");
+	retstat = pipefs_error("pipefs_statfs statvfs");
 
     return retstat;
 }
@@ -452,7 +452,7 @@ int bb_statfs(const char *path, struct statvfs *statv)
  *
  * Changed in version 2.2
  */
-int bb_flush(const char *path, struct fuse_file_info *fi)
+int pipefs_flush(const char *path, struct fuse_file_info *fi)
 {
     int retstat = 0;
 
@@ -475,7 +475,7 @@ int bb_flush(const char *path, struct fuse_file_info *fi)
  *
  * Changed in version 2.2
  */
-int bb_release(const char *path, struct fuse_file_info *fi)
+int pipefs_release(const char *path, struct fuse_file_info *fi)
 {
     int retstat = 0;
 
@@ -496,7 +496,7 @@ int bb_release(const char *path, struct fuse_file_info *fi)
  *
  * Changed in version 2.2
  */
-int bb_fsync(const char *path, int datasync, struct fuse_file_info *fi)
+int pipefs_fsync(const char *path, int datasync, struct fuse_file_info *fi)
 {
     int retstat = 0;
 
@@ -512,7 +512,7 @@ int bb_fsync(const char *path, int datasync, struct fuse_file_info *fi)
 	retstat = fsync(fi->fh);
 
     if (retstat < 0)
-	bb_error("bb_fsync fsync");
+	pipefs_error("pipefs_fsync fsync");
 
     return retstat;
 }
@@ -524,7 +524,7 @@ int bb_fsync(const char *path, int datasync, struct fuse_file_info *fi)
  *
  * Introduced in version 2.3
  */
-int bb_opendir(const char *path, struct fuse_file_info *fi)
+int pipefs_opendir(const char *path, struct fuse_file_info *fi)
 {
     DIR *dp;
     int retstat = 0;
@@ -532,11 +532,11 @@ int bb_opendir(const char *path, struct fuse_file_info *fi)
 
     log_msg("\nbb_opendir(path=\"%s\", fi=0x%08x)\n",
 	  path, fi);
-    bb_fullpath(fpath, path);
+    pipefs_fullpath(fpath, path);
 
     dp = opendir(fpath);
     if (dp == NULL)
-	retstat = bb_error("bb_opendir opendir");
+	retstat = pipefs_error("pipefs_opendir opendir");
 
     fi->fh = (intptr_t) dp;
 
@@ -564,7 +564,7 @@ int bb_opendir(const char *path, struct fuse_file_info *fi)
  *
  * Introduced in version 2.3
  */
-int bb_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
+int pipefs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 	       struct fuse_file_info *fi)
 {
     int retstat = 0;
@@ -582,7 +582,7 @@ int bb_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
     // which I can get an error from readdir()
     de = readdir(dp);
     if (de == 0) {
-	retstat = bb_error("bb_readdir readdir");
+	retstat = pipefs_error("pipefs_readdir readdir");
 	return retstat;
     }
 
@@ -593,7 +593,7 @@ int bb_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
     do {
 	log_msg("calling filler with name %s\n", de->d_name);
 	if (filler(buf, de->d_name, NULL, 0) != 0) {
-	    log_msg("    ERROR bb_readdir filler:  buffer full");
+	    log_msg("    ERROR pipefs_readdir filler:  buffer full");
 	    return -ENOMEM;
 	}
     } while ((de = readdir(dp)) != NULL);
@@ -605,7 +605,7 @@ int bb_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
  *
  * Introduced in version 2.3
  */
-int bb_releasedir(const char *path, struct fuse_file_info *fi)
+int pipefs_releasedir(const char *path, struct fuse_file_info *fi)
 {
     int retstat = 0;
 
@@ -626,7 +626,7 @@ int bb_releasedir(const char *path, struct fuse_file_info *fi)
  */
 // when exactly is this called?  when a user calls fsync and it
 // happens to be a directory? ???
-int bb_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi)
+int pipefs_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi)
 {
     int retstat = 0;
 
@@ -653,7 +653,7 @@ int bb_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi)
 // parameter coming in here, or else the fact should be documented
 // (and this might as well return void, as it did in older versions of
 // FUSE).
-void *bb_init(struct fuse_conn_info *conn)
+void *pipefs_init(struct fuse_conn_info *conn)
 {
     log_msg("\nbb_init()\n");
     (void)conn;
@@ -667,7 +667,7 @@ void *bb_init(struct fuse_conn_info *conn)
  *
  * Introduced in version 2.3
  */
-void bb_destroy(void *userdata)
+void pipefs_destroy(void *userdata)
 {
     log_msg("\nbb_destroy(userdata=0x%08x)\n", userdata);
 }
@@ -683,19 +683,19 @@ void bb_destroy(void *userdata)
  *
  * Introduced in version 2.5
  */
-int bb_access(const char *path, int mask)
+int pipefs_access(const char *path, int mask)
 {
     int retstat = 0;
     char fpath[PATH_MAX];
 
     log_msg("\nbb_access(path=\"%s\", mask=0%o)\n",
 	    path, mask);
-    bb_fullpath(fpath, path);
+    pipefs_fullpath(fpath, path);
 
     retstat = access(fpath, mask);
 
     if (retstat < 0)
-	retstat = bb_error("bb_access access");
+	retstat = pipefs_error("pipefs_access access");
 
     return retstat;
 }
@@ -712,7 +712,7 @@ int bb_access(const char *path, int mask)
  *
  * Introduced in version 2.5
  */
-int bb_create(const char *path, mode_t mode, struct fuse_file_info *fi)
+int pipefs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
     int retstat = 0;
     char fpath[PATH_MAX];
@@ -720,11 +720,11 @@ int bb_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
     log_msg("\nbb_create(path=\"%s\", mode=0%03o, fi=0x%08x)\n",
 	    path, mode, fi);
-    bb_fullpath(fpath, path);
+    pipefs_fullpath(fpath, path);
 
     fd = creat(fpath, mode);
     if (fd < 0)
-	retstat = bb_error("bb_create creat");
+	retstat = pipefs_error("pipefs_create creat");
 
     fi->fh = fd;
 
@@ -743,7 +743,7 @@ int bb_create(const char *path, mode_t mode, struct fuse_file_info *fi)
  *
  * Introduced in version 2.5
  */
-int bb_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi)
+int pipefs_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi)
 {
     int retstat = 0;
 
@@ -752,7 +752,7 @@ int bb_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi)
 
     retstat = ftruncate(fi->fh, offset);
     if (retstat < 0)
-	retstat = bb_error("bb_ftruncate ftruncate");
+	retstat = pipefs_error("pipefs_ftruncate ftruncate");
 
     return retstat;
 }
@@ -769,7 +769,7 @@ int bb_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi)
  *
  * Introduced in version 2.5
  */
-int bb_fgetattr(const char *path, struct stat *statbuf, struct fuse_file_info *fi)
+int pipefs_fgetattr(const char *path, struct stat *statbuf, struct fuse_file_info *fi)
 {
     int retstat = 0;
 
@@ -781,57 +781,57 @@ int bb_fgetattr(const char *path, struct stat *statbuf, struct fuse_file_info *f
     // special case of a path of "/", I need to do a getattr on the
     // underlying root directory instead of doing the fgetattr().
     if (!strcmp(path, "/"))
-	return bb_getattr(path, statbuf);
+	return pipefs_getattr(path, statbuf);
 
     retstat = fstat(fi->fh, statbuf);
     if (retstat < 0)
-	retstat = bb_error("bb_fgetattr fstat");
+	retstat = pipefs_error("pipefs_fgetattr fstat");
 
     return retstat;
 }
 
-struct fuse_operations bb_oper = {
-  .getattr = bb_getattr,
-  .readlink = bb_readlink,
+struct fuse_operations pipefs_oper = {
+  .getattr = pipefs_getattr,
+  .readlink = pipefs_readlink,
   // no .getdir -- that's deprecated
   .getdir = NULL,
-  .mknod = bb_mknod,
-  .mkdir = bb_mkdir,
-  .unlink = bb_unlink,
-  .rmdir = bb_rmdir,
-  .symlink = bb_symlink,
-  .rename = bb_rename,
-  .link = bb_link,
-  .chmod = bb_chmod,
-  .chown = bb_chown,
-  .truncate = bb_truncate,
-  .utime = bb_utime,
-  .open = bb_open,
-  .read = bb_read,
-  .write = bb_write,
+  .mknod = pipefs_mknod,
+  .mkdir = pipefs_mkdir,
+  .unlink = pipefs_unlink,
+  .rmdir = pipefs_rmdir,
+  .symlink = pipefs_symlink,
+  .rename = pipefs_rename,
+  .link = pipefs_link,
+  .chmod = pipefs_chmod,
+  .chown = pipefs_chown,
+  .truncate = pipefs_truncate,
+  .utime = pipefs_utime,
+  .open = pipefs_open,
+  .read = pipefs_read,
+  .write = pipefs_write,
   /** Just a placeholder, don't set */ // huh???
-  .statfs = bb_statfs,
-  .flush = bb_flush,
-  .release = bb_release,
-  .fsync = bb_fsync,
+  .statfs = pipefs_statfs,
+  .flush = pipefs_flush,
+  .release = pipefs_release,
+  .fsync = pipefs_fsync,
 
 #ifdef HAVE_SYS_XATTR_H
-  .setxattr = bb_setxattr,
-  .getxattr = bb_getxattr,
-  .listxattr = bb_listxattr,
-  .removexattr = bb_removexattr,
+  .setxattr = pipefs_setxattr,
+  .getxattr = pipefs_getxattr,
+  .listxattr = pipefs_listxattr,
+  .removexattr = pipefs_removexattr,
 #endif
 
-  .opendir = bb_opendir,
-  .readdir = bb_readdir,
-  .releasedir = bb_releasedir,
-  .fsyncdir = bb_fsyncdir,
-  .init = bb_init,
-  .destroy = bb_destroy,
-  .access = bb_access,
-  .create = bb_create,
-  .ftruncate = bb_ftruncate,
-  .fgetattr = bb_fgetattr
+  .opendir = pipefs_opendir,
+  .readdir = pipefs_readdir,
+  .releasedir = pipefs_releasedir,
+  .fsyncdir = pipefs_fsyncdir,
+  .init = pipefs_init,
+  .destroy = pipefs_destroy,
+  .access = pipefs_access,
+  .create = pipefs_create,
+  .ftruncate = pipefs_ftruncate,
+  .fgetattr = pipefs_fgetattr
 };
 
 void print_usage(const char* program_name)
@@ -863,7 +863,7 @@ int main(int argc, char *argv[])
 
     // turn over control to fuse
     fprintf(stderr, "about to call fuse_main\n");
-    fuse_stat = fuse_main(argc, argv, &bb_oper, &data);
+    fuse_stat = fuse_main(argc, argv, &pipefs_oper, &data);
     fprintf(stderr, "fuse_main returned %d\n", fuse_stat);
 
     return fuse_stat;
