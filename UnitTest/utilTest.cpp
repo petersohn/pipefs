@@ -11,5 +11,17 @@ BOOST_AUTO_TEST_CASE(translate_suffix_find_suffix)
 	free(result);
 }
 
+BOOST_AUTO_TEST_CASE(translate_suffix_no_suffix)
+{
+	char* result = translate_suffix("this is first", "fir", "second");
+	BOOST_CHECK(!result);
+}
+
+BOOST_AUTO_TEST_CASE(translate_suffix_too_long_suffix)
+{
+	char* result = translate_suffix("this is first", "this is firstt", "second");
+	BOOST_CHECK(!result);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
