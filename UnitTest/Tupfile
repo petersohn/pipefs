@@ -1,0 +1,15 @@
+
+include_rules
+
+include $(COMPILE_TUP)
+
+: foreach *.cpp |> !cxx |>
+
+include $(LINK_TUP)
+LIBS += -lboost_unit_test_framework
+
+: ./*.o $(SOURCE_DIR)/*.o |> !linker |> unitTest
+
+include $(TEST_TUP)
+
+: unitTest |> !unitTest |>
