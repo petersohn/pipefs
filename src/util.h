@@ -6,6 +6,8 @@ extern "C" {
 #endif
 
 char* translate_suffix(const char* string, const char* from, const char* to);
+char* translate_file(const char* target_path, const char* suffix_source,
+		const char* suffix_target);
 
 #ifdef __cplusplus
 }

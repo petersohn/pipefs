@@ -1,18 +1,8 @@
 #ifndef SRC_FUNCTIONS_H
 #define SRC_FUNCTIONS_H
 
-#include <ctype.h>
-#include <dirent.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <fuse.h>
-#include <libgen.h>
-#include <limits.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
 #include <sys/types.h>
+#include <fuse.h>
 
 int pipefs_getattr(const char *path, struct stat *statbuf);
 int pipefs_readlink(const char *path, char *link, size_t size);

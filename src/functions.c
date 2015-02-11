@@ -4,6 +4,18 @@
 
 #include "functions.h"
 
+#include <ctype.h>
+#include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <fuse.h>
+#include <libgen.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
 // Report errors to logfile and give -errno to caller
 static int pipefs_error(char *str)
 {
