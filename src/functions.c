@@ -47,14 +47,13 @@ static void pipefs_fullpath(char fpath[PATH_MAX], const char *path)
  */
 int pipefs_getattr(const char *path, struct stat *statbuf)
 {
-    int retstat = 0;
-    char fpath[PATH_MAX];
-
     log_msg("\nbb_getattr(path=\"%s\", statbuf=0x%08x)\n",
 	  path, statbuf);
+
+    char fpath[PATH_MAX];
     pipefs_fullpath(fpath, path);
 
-    retstat = lstat(fpath, statbuf);
+    int retstat = lstat(fpath, statbuf);
     if (retstat != 0)
 	retstat = pipefs_error("pipefs_getattr lstat");
 
