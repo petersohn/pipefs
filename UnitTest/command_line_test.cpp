@@ -11,6 +11,9 @@
 	BOOST_PP_SEQ_FOR_EACH_I(_CHECK_ARRAY_ELEMENT, array, elements) \
 } while(false)
 
+#define _STRINGIZE_SEQ_ELEM(r, data, elem) (std::string{elem})
+#define STRINGIZE_SEQ(seq) BOOST_PP_SEQ_FOR_EACH(_STRINGIZE_SEQ_ELEM, _, seq)
+
 struct CommandLineFixture {
 	char** result = nullptr;
 	int resultLength;
@@ -29,7 +32,7 @@ BOOST_AUTO_TEST_CASE(only_fuse_params)
 	const char* args[] = {"first", "second", "third"};
 	result = parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
 	BOOST_CHECK_EQUAL(resultLength, 3);
-	CHECK_ARRAY(result, (std::string{"first"})(std::string{"second"})(std::string{"third"}));
+	CHECK_ARRAY(result, STRINGIZE_SEQ(("first")("second")("third")));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
