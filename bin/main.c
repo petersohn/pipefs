@@ -2,6 +2,7 @@
 #include "data.h"
 #include "log.h"
 #include "operations.h"
+#include "signal_handler.h"
 
 #include <ctype.h>
 #include <dirent.h>
@@ -44,6 +45,7 @@ int main(int argc, char *argv[])
 
     data.logfile = log_open();
 
+    signal_handler_initialize();
     // turn over control to fuse
     fprintf(stderr, "about to call fuse_main\n");
     fuse_stat = fuse_main(argc, argv, &pipefs_oper, &data);
