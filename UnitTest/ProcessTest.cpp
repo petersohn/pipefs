@@ -1,6 +1,8 @@
 #include "process.h"
 #include "params.h"
 
+#include "System.hpp"
+
 #include <boost/test/unit_test.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -8,13 +10,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-
-#define CHECKED_SYSCALL(syscall, result) do { \
-	(result) = (syscall); \
-	if ((result) == -1 && errno != EINTR) { \
-		BOOST_FAIL(#result " failed: " << strerror(errno)); \
-	} \
-} while ((result) == -1)
 
 
 BOOST_AUTO_TEST_SUITE(ProcessTest)
