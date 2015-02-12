@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     if ((getuid() == 0) || (geteuid() == 0)) {
         fprintf(stderr, "Running pipefs as root opens unnacceptable security holes\n");
