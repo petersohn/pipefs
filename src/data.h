@@ -6,6 +6,7 @@ struct pipefs_data {
     char* rootdir;
     char* source_suffix;
     char* target_suffix;
+    char* command;
 };
 
 

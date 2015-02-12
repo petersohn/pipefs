@@ -11,7 +11,7 @@ void signal_handler_initialize()
     sigemptyset(&sigset);
 
     struct sigaction action;
-    memset(&action, 0, sizeof(action));
+    memset(&action, 0, sizeof(struct sigaction));
     action.sa_handler = SIG_IGN;
     action.sa_mask = sigset;
     action.sa_flags = SA_NOCLDSTOP | SA_NOCLDWAIT;
