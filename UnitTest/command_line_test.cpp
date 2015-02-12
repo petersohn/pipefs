@@ -7,7 +7,6 @@
 
 #define _CHECK_ARRAY_ELEMENT(r, array, i, elem) \
 	BOOST_CHECK_EQUAL(array[i], elem);
-
 #define CHECK_ARRAY(array, elements) do { \
 	BOOST_PP_SEQ_FOR_EACH_I(_CHECK_ARRAY_ELEMENT, array, elements) \
 } while(false)
