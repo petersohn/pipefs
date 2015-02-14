@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 // Report errors to logfile and give -errno to caller
 static int pipefs_error(char *str)
@@ -596,6 +597,12 @@ int pipefs_release(const char *path, struct fuse_file_info *fi)
     struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
     if (filedata->original_fd >= 0) {
 	close(filedata->original_fd);
+	log_msg("    waiting for child to finish...\n");
+	int result;
+	do {
+	    result = waitpid(filedata->pid, NULL, 0);
+	    log_msg("        result = %s\n", strerror(errno));
+	} while (result == -1 && errno == EINTR);
     }
     retstat = close(filedata->fd);
     free(filedata);

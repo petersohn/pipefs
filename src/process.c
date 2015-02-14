@@ -60,6 +60,7 @@ int spawn_command(const char* command, const char* input_file, int flags,
 	if (filedata) {
 		filedata->original_fd = fd;
 		filedata->fd = pipefd[0];
+		filedata->pid = pid;
 		filedata->current_offset = 0;
 	} else {
 		close(fd);
