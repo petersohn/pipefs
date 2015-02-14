@@ -46,7 +46,7 @@ char** parse_arguments(int argc, char* argv[], struct pipefs_data* data,
                     argc, argv, &i) ||
             parse_argument_type("--root-dir", &data->rootdir,
                     argc, argv, &i) ||
-            parse_argument_type("log-file", &log_file_name,
+            parse_argument_type("--log-file", &log_file_name,
                     argc, argv, &i) ||
             parse_argument_type("--command", &data->command,
                     argc, argv, &i)) {

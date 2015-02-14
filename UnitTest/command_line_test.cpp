@@ -1,5 +1,6 @@
 #include "command_line.h"
 #include "data.h"
+#include "System.hpp"
 
 #include <boost/test/unit_test.hpp>
 #include <boost/preprocessor/seq/for_each_i.hpp>
@@ -77,6 +78,16 @@ BOOST_AUTO_TEST_CASE(parse_root_dir)
 	result = parse_arguments(2, const_cast<char**>(args), &data, &resultLength);
 	BOOST_CHECK_EQUAL(resultLength, 0);
 	CHECK_STRING(data.rootdir, value);
+}
+
+BOOST_AUTO_TEST_CASE(parse_log_file)
+{
+	std::string value = "log.txt";
+	const char* args[] = {"--log-file", value.c_str()};
+	result = parse_arguments(2, const_cast<char**>(args), &data, &resultLength);
+	BOOST_CHECK_EQUAL(resultLength, 0);
+	int unlinkResult;
+	CHECKED_SYSCALL(unlink(value.c_str()), unlinkResult);
 }
 
 BOOST_AUTO_TEST_CASE(parse_all_values)

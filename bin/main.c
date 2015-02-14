@@ -49,8 +49,12 @@ int main(int argc, char* argv[])
 
     // turn over control to fuse
     fprintf(stderr, "about to call fuse_main\n");
+    for (int i = 0; i < fuse_argc; ++i) {
+        fprintf(stderr, "  -> %s\n", fuse_argv[i]);
+    }
     int fuse_stat = fuse_main(fuse_argc, fuse_argv, &pipefs_oper, &data);
     fprintf(stderr, "fuse_main returned %d\n", fuse_stat);
+    free(fuse_argv);
 
     return fuse_stat;
 }

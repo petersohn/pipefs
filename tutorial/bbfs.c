@@ -1021,6 +1021,9 @@ int main(int argc, char *argv[])
     
     // turn over control to fuse
     fprintf(stderr, "about to call fuse_main\n");
+    for (int i = 0; i < argc; ++i) {
+	fprintf(stderr, "  -> %s\n", argv[i]);
+    }
     fuse_stat = fuse_main(argc, argv, &bb_oper, bb_data);
     fprintf(stderr, "fuse_main returned %d\n", fuse_stat);
     
