@@ -38,8 +38,13 @@ char* translate_file(const char* target_path, const char* suffix_source,
 	}
 
 	struct stat data;
-	int retstat = lstat(source_path, &data);
+	int retstat = stat(source_path, &data);
 	if (retstat != 0) {
+		free(source_path);
+		return NULL;
+	}
+
+	if (data.st_mode & S_IFDIR) {
 		free(source_path);
 		return NULL;
 	}

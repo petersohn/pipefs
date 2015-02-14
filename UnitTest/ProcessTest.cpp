@@ -1,5 +1,6 @@
 #include "process.h"
 #include "params.h"
+#include "data.h"
 
 #include "System.hpp"
 
@@ -9,6 +10,7 @@
 #include <fstream>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 
 
@@ -16,8 +18,10 @@ BOOST_AUTO_TEST_SUITE(ProcessTest)
 
 BOOST_AUTO_TEST_CASE(successful_process)
 {
+	struct pipefs_filedata data;
 	int fd = 0;
-	CHECKED_SYSCALL(spawn_command("true", "/dev/null"), fd);
+	CHECKED_SYSCALL(spawn_command("true", "/dev/null", O_RDONLY, &data), fd);
+	BOOST_CHECK_EQUAL(data.fd, fd);
 }
 
 BOOST_AUTO_TEST_CASE(process_with_output)
@@ -25,7 +29,7 @@ BOOST_AUTO_TEST_CASE(process_with_output)
 	std::string text = "something";
 	std::string command = "echo -n " + text;
 	int fd = 0;
-	CHECKED_SYSCALL(spawn_command(command.c_str(), "/dev/null"), fd);
+	CHECKED_SYSCALL(spawn_command(command.c_str(), "/dev/null", O_RDONLY, NULL), fd);
 
 	char result[20];
 	ssize_t readBytes = 0;
@@ -55,7 +59,7 @@ BOOST_FIXTURE_TEST_CASE(process_with_input, FileFixture)
 	file.close();
 
 	int fd = 0;
-	CHECKED_SYSCALL(spawn_command("cat", filename.c_str()), fd);
+	CHECKED_SYSCALL(spawn_command("cat", filename.c_str(), O_RDONLY, NULL), fd);
 
 	char result[20];
 	ssize_t readBytes = 0;

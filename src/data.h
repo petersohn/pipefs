@@ -1,5 +1,6 @@
 #include <limits.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -11,6 +12,12 @@ struct pipefs_data {
     char* source_suffix;
     char* target_suffix;
     char* command;
+};
+
+struct pipefs_filedata {
+    int original_fd;
+    int fd;
+    off_t current_offset;
 };
 
 #ifdef __cplusplus

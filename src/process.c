@@ -1,5 +1,6 @@
 #include "process.h"
 #include "params.h"
+#include "data.h"
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -7,7 +8,8 @@
 #include <fcntl.h>
 #include <stdio.h>
 
-int spawn_command(const char* command, const char* input_file)
+int spawn_command(const char* command, const char* input_file, int flags,
+		struct pipefs_filedata* filedata)
 {
 	int fd = open(input_file, O_RDONLY);
 	if (fd < 0) {
@@ -15,13 +17,23 @@ int spawn_command(const char* command, const char* input_file)
 	}
 
 	int pipefd[2];
-	int result = pipe(pipefd);
-	if (result < 0) {
+	if (pipe(pipefd) < 0) {
+		close(fd);
+		return -1;
+	}
+
+	if (fcntl(pipefd[0], F_SETFL, flags) < 0) {
+		close(pipefd[0]);
+		close(pipefd[1]);
+		close(fd);
 		return -1;
 	}
 
 	int pid = fork();
 	if (pid < 0) {
+		close(pipefd[0]);
+		close(pipefd[1]);
+		close(fd);
 		return -1;
 	}
 
@@ -43,8 +55,15 @@ int spawn_command(const char* command, const char* input_file)
 	}
 
 	// parent
-	close(fd);
 	close(pipefd[1]);
+
+	if (filedata) {
+		filedata->original_fd = fd;
+		filedata->fd = pipefd[0];
+		filedata->current_offset = 0;
+	} else {
+		close(fd);
+	}
 	return pipefd[0];
 }
 

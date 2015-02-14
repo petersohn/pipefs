@@ -1,6 +1,8 @@
 #include "params.h"
 #include "data.h"
 #include "log.h"
+#include "util.h"
+#include "process.h"
 
 #include "functions.h"
 
@@ -39,6 +41,25 @@ static void pipefs_fullpath(char fpath[PATH_MAX], const char *path)
 	    GET_DATA->rootdir, path, fpath);
 }
 
+static int has_source_path(const char* fpath)
+{
+    struct pipefs_data* data = GET_DATA;
+    char* translated_path = translate_file(fpath, data->source_suffix,
+	    data->target_suffix);
+    free(translated_path);
+    return !!translated_path;
+}
+
+#define CHECK_SOURCE_PATH_CREATE(fpath) if (has_source_path(fpath)) return -EEXIST
+#define CHECK_SOURCE_PATH_MODIFY(fpath) if (has_source_path(fpath)) return -EPERM
+
+static void correct_stat_info(struct stat* statbuf)
+{
+    statbuf->st_mode = S_IFREG | (statbuf->st_mode & 0444);
+    statbuf->st_size = 0;
+    statbuf->st_blocks = 0;
+}
+
 /** Get file attributes.
  *
  * Similar to stat().  The 'st_dev' and 'st_blksize' fields are
@@ -52,6 +73,23 @@ int pipefs_getattr(const char *path, struct stat *statbuf)
 
     char fpath[PATH_MAX];
     pipefs_fullpath(fpath, path);
+
+    struct pipefs_data* data = GET_DATA;
+    char* translated_path = translate_file(fpath, data->source_suffix,
+	    data->target_suffix);
+
+    if (translated_path) {
+	int retstat = stat(translated_path, statbuf);
+	free(translated_path);
+
+	if (retstat != 0) {
+	    retstat = pipefs_error("pipefs_getattr lstat");
+	    return retstat;
+	}
+
+	correct_stat_info(statbuf);
+	return retstat;
+    }
 
     int retstat = lstat(fpath, statbuf);
     if (retstat != 0)
@@ -107,6 +145,8 @@ int pipefs_mknod(const char *path, mode_t mode, dev_t dev)
 	  path, mode, dev);
     pipefs_fullpath(fpath, path);
 
+    CHECK_SOURCE_PATH_CREATE(fpath);
+
     // On Linux this could just be 'mknod(path, mode, rdev)' but this
     //  is more portable
     if (S_ISREG(mode)) {
@@ -142,6 +182,8 @@ int pipefs_mkdir(const char *path, mode_t mode)
 	    path, mode);
     pipefs_fullpath(fpath, path);
 
+    CHECK_SOURCE_PATH_CREATE(fpath);
+
     retstat = mkdir(fpath, mode);
     if (retstat < 0)
 	retstat = pipefs_error("pipefs_mkdir mkdir");
@@ -158,6 +200,18 @@ int pipefs_unlink(const char *path)
     log_msg("pipefs_unlink(path=\"%s\")\n",
 	    path);
     pipefs_fullpath(fpath, path);
+
+    struct pipefs_data* data = GET_DATA;
+    char* translated_path = translate_file(fpath, data->source_suffix,
+	    data->target_suffix);
+    if (translated_path) {
+	retstat = unlink(translated_path);
+	free(translated_path);
+	if (retstat < 0)
+	    retstat = pipefs_error("pipefs_unlink unlink");
+
+	return retstat;
+    }
 
     retstat = unlink(fpath);
     if (retstat < 0)
@@ -196,6 +250,7 @@ int pipefs_symlink(const char *path, const char *link)
     log_msg("\nbb_symlink(path=\"%s\", link=\"%s\")\n",
 	    path, link);
     pipefs_fullpath(flink, link);
+    CHECK_SOURCE_PATH_CREATE(flink);
 
     retstat = symlink(path, flink);
     if (retstat < 0)
@@ -215,7 +270,9 @@ int pipefs_rename(const char *path, const char *newpath)
     log_msg("\nbb_rename(fpath=\"%s\", newpath=\"%s\")\n",
 	    path, newpath);
     pipefs_fullpath(fpath, path);
+    CHECK_SOURCE_PATH_MODIFY(fnewpath);
     pipefs_fullpath(fnewpath, newpath);
+    CHECK_SOURCE_PATH_CREATE(fnewpath);
 
     retstat = rename(fpath, fnewpath);
     if (retstat < 0)
@@ -233,7 +290,9 @@ int pipefs_link(const char *path, const char *newpath)
     log_msg("\nbb_link(path=\"%s\", newpath=\"%s\")\n",
 	    path, newpath);
     pipefs_fullpath(fpath, path);
+    CHECK_SOURCE_PATH_MODIFY(fnewpath);
     pipefs_fullpath(fnewpath, newpath);
+    CHECK_SOURCE_PATH_CREATE(fnewpath);
 
     retstat = link(fpath, fnewpath);
     if (retstat < 0)
@@ -252,7 +311,16 @@ int pipefs_chmod(const char *path, mode_t mode)
 	    path, mode);
     pipefs_fullpath(fpath, path);
 
-    retstat = chmod(fpath, mode);
+    struct pipefs_data* data = GET_DATA;
+    char* translated_path = translate_file(fpath, data->source_suffix,
+	    data->target_suffix);
+    if (translated_path && (mode & 0333)) {
+	free(translated_path);
+	return -EPERM;
+    }
+
+    retstat = chmod(translated_path ? translated_path : fpath, mode);
+    free(translated_path);
     if (retstat < 0)
 	retstat = pipefs_error("pipefs_chmod chmod");
 
@@ -269,7 +337,12 @@ int pipefs_chown(const char *path, uid_t uid, gid_t gid)
 	    path, uid, gid);
     pipefs_fullpath(fpath, path);
 
-    retstat = chown(fpath, uid, gid);
+    struct pipefs_data* data = GET_DATA;
+    char* translated_path = translate_file(fpath, data->source_suffix,
+	    data->target_suffix);
+
+    retstat = chown(translated_path ? translated_path : fpath, uid, gid);
+    free(translated_path);
     if (retstat < 0)
 	retstat = pipefs_error("pipefs_chown chown");
 
@@ -285,6 +358,7 @@ int pipefs_truncate(const char *path, off_t newsize)
     log_msg("\nbb_truncate(path=\"%s\", newsize=%lld)\n",
 	    path, newsize);
     pipefs_fullpath(fpath, path);
+    CHECK_SOURCE_PATH_MODIFY(fpath);
 
     retstat = truncate(fpath, newsize);
     if (retstat < 0)
@@ -304,7 +378,12 @@ int pipefs_utime(const char *path, struct utimbuf *ubuf)
 	    path, ubuf);
     pipefs_fullpath(fpath, path);
 
-    retstat = utime(fpath, ubuf);
+    struct pipefs_data* data = GET_DATA;
+    char* translated_path = translate_file(fpath, data->source_suffix,
+	    data->target_suffix);
+
+    retstat = utime(translated_path ? translated_path : fpath, ubuf);
+    free(translated_path);
     if (retstat < 0)
 	retstat = pipefs_error("pipefs_utime utime");
 
@@ -323,21 +402,40 @@ int pipefs_utime(const char *path, struct utimbuf *ubuf)
  */
 int pipefs_open(const char *path, struct fuse_file_info *fi)
 {
-    int retstat = 0;
-    int fd;
     char fpath[PATH_MAX];
 
     log_msg("\nbb_open(path\"%s\", fi=0x%08x)\n",
 	    path, fi);
     pipefs_fullpath(fpath, path);
 
-    fd = open(fpath, fi->flags);
-    if (fd < 0)
-	retstat = pipefs_error("pipefs_open open");
+    struct pipefs_data* data = GET_DATA;
+    char* translated_path = translate_file(fpath, data->source_suffix,
+	    data->target_suffix);
 
-    fi->fh = fd;
+    struct pipefs_filedata* filedata = malloc(sizeof(struct pipefs_filedata));
+    int fd;
+    if (translated_path) {
+	if (fi->flags & (O_WRONLY | O_RDWR | O_CREAT)) {
+	    log_msg("    error: flags=%04o\n", fi->flags);
+	    return -EINVAL;
+	}
 
-    return retstat;
+	fd = spawn_command(data->command, translated_path, fi->flags, filedata);
+	fi->direct_io = 1;
+    } else {
+	fd = open(fpath, fi->flags);
+	filedata->fd = fd;
+	filedata->original_fd = -1;
+    }
+    if (fd < 0) {
+	free(filedata);
+	return pipefs_error("pipefs_open open");
+    }
+
+    log_msg("    filedata=%08x -- fd=%d, original_fd=%d, offset=%d\n",
+	    filedata, filedata->fd, filedata->original_fd, filedata->current_offset);
+    fi->fh = (intptr_t)(filedata);
+    return 0;
 }
 
 /** Read data from an open file
@@ -364,7 +462,24 @@ int pipefs_read(const char *path, char *buf, size_t size, off_t offset,
     log_msg("\nbb_read(path=\"%s\", buf=0x%08x, size=%d, offset=%lld, fi=0x%08x)\n",
 	    path, buf, size, offset, fi);
 
-    retstat = pread(fi->fh, buf, size, offset);
+    struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
+    log_msg("    filedata=%08x -- fd=%d, original_fd=%d, offset=%d\n",
+	    filedata, filedata->fd, filedata->original_fd, filedata->current_offset);
+    if (filedata->original_fd < 0) {
+	log_msg("    pread()");
+	retstat = pread(filedata->fd, buf, size, offset);
+    } else {
+	if (offset != filedata->current_offset) {
+	    log_msg("    bad offset, expected=%d\n", filedata->current_offset);
+	    return -ESPIPE;
+	}
+	log_msg("    read()");
+	retstat = read(filedata->fd, buf, size);
+	if (retstat > 0) {
+	    filedata->current_offset += retstat;
+	}
+    }
+    log_msg(" = %d\n", retstat);
     if (retstat < 0)
 	retstat = pipefs_error("pipefs_read read");
 
@@ -413,8 +528,12 @@ int pipefs_statfs(const char *path, struct statvfs *statv)
 	    path, statv);
     pipefs_fullpath(fpath, path);
 
+    struct pipefs_data* data = GET_DATA;
+    char* translated_path = translate_file(fpath, data->source_suffix,
+	    data->target_suffix);
     // get stats for underlying filesystem
-    retstat = statvfs(fpath, statv);
+    retstat = statvfs(translated_path ? translated_path : fpath, statv);
+    free(translated_path);
     if (retstat < 0)
 	retstat = pipefs_error("pipefs_statfs statvfs");
 
@@ -474,9 +593,12 @@ int pipefs_release(const char *path, struct fuse_file_info *fi)
     log_msg("\nbb_release(path=\"%s\", fi=0x%08x)\n",
 	  path, fi);
 
-    // We need to close the file.  Had we allocated any resources
-    // (buffers etc) we'd need to free them here as well.
-    retstat = close(fi->fh);
+    struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
+    if (filedata->original_fd >= 0) {
+	close(filedata->original_fd);
+    }
+    retstat = close(filedata->fd);
+    free(filedata);
 
     return retstat;
 }
@@ -495,13 +617,8 @@ int pipefs_fsync(const char *path, int datasync, struct fuse_file_info *fi)
     log_msg("\nbb_fsync(path=\"%s\", datasync=%d, fi=0x%08x)\n",
 	    path, datasync, fi);
 
-    // some unix-like systems (notably freebsd) don't have a datasync call
-#ifdef HAVE_FDATASYNC
-    if (datasync)
-	retstat = fdatasync(fi->fh);
-    else
-#endif
-	retstat = fsync(fi->fh);
+    struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
+    retstat = fsync(filedata->fd);
 
     if (retstat < 0)
 	pipefs_error("pipefs_fsync fsync");
@@ -583,8 +700,16 @@ int pipefs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     // returns something non-zero.  The first case just means I've
     // read the whole directory; the second means the buffer is full.
     do {
+	struct pipefs_data* data = GET_DATA;
+	char* real_name = translate_suffix(de->d_name, data->source_suffix,
+		data->target_suffix);
+
 	log_msg("calling filler with name %s\n", de->d_name);
-	if (filler(buf, de->d_name, NULL, 0) != 0) {
+	int filler_result = filler(buf, real_name ? real_name : de->d_name,
+		NULL, 0);
+	free(real_name);
+
+	if (filler_result != 0) {
 	    log_msg("    ERROR pipefs_readdir filler:  buffer full");
 	    return -ENOMEM;
 	}
@@ -684,7 +809,16 @@ int pipefs_access(const char *path, int mask)
 	    path, mask);
     pipefs_fullpath(fpath, path);
 
-    retstat = access(fpath, mask);
+    struct pipefs_data* data = GET_DATA;
+    char* translated_path = translate_file(fpath, data->source_suffix,
+	    data->target_suffix);
+    if (translated_path && (mask & (W_OK | X_OK))) {
+	free(translated_path);
+	return -EACCES;
+    }
+
+    retstat = access(translated_path ? translated_path : fpath, mask);
+    free(translated_path);
 
     if (retstat < 0)
 	retstat = pipefs_error("pipefs_access access");
@@ -713,6 +847,7 @@ int pipefs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     log_msg("\nbb_create(path=\"%s\", mode=0%03o, fi=0x%08x)\n",
 	    path, mode, fi);
     pipefs_fullpath(fpath, path);
+    CHECK_SOURCE_PATH_CREATE(fpath);
 
     fd = creat(fpath, mode);
     if (fd < 0)
@@ -742,7 +877,8 @@ int pipefs_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi)
     log_msg("\nbb_ftruncate(path=\"%s\", offset=%lld, fi=0x%08x)\n",
 	    path, offset, fi);
 
-    retstat = ftruncate(fi->fh, offset);
+    struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
+    retstat = ftruncate(filedata->fd, offset);
     if (retstat < 0)
 	retstat = pipefs_error("pipefs_ftruncate ftruncate");
 
@@ -776,7 +912,13 @@ int pipefs_fgetattr(const char *path, struct stat *statbuf,
     if (!strcmp(path, "/"))
 	return pipefs_getattr(path, statbuf);
 
-    retstat = fstat(fi->fh, statbuf);
+    struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
+    if (filedata->original_fd >= 0) {
+	retstat = fstat(filedata->original_fd, statbuf);
+	correct_stat_info(statbuf);
+    } else {
+	retstat = fstat(filedata->fd, statbuf);
+    }
     if (retstat < 0)
 	retstat = pipefs_error("pipefs_fgetattr fstat");
 

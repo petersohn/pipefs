@@ -5,7 +5,10 @@
 extern "C" {
 #endif
 
-int spawn_command(const char* command, const char* input_file);
+struct pipefs_filedata;
+
+int spawn_command(const char* command, const char* input_file, int flags, 
+        struct pipefs_filedata* filedata);
 
 #ifdef __cplusplus
 }
