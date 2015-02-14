@@ -45,7 +45,9 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    signal_handler_initialize();
+    char real_rootdir[PATH_MAX];
+    data.rootdir = realpath(data.rootdir, real_rootdir);
+    /*signal_handler_initialize();*/
 
     // turn over control to fuse
     fprintf(stderr, "about to call fuse_main\n");
