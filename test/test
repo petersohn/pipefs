@@ -1,0 +1,55 @@
+#!/bin/bash
+
+
+function run_test()
+{
+    local test_name="$1"
+
+    echo "Running test $test_name"
+    (
+        source "$test_name"
+        cd "$test_dir"
+        set +e
+        (
+            set -e
+            test_init
+            test_run
+        )
+        result=$?
+        test_cleanup && exit $result
+        exit $?
+    )
+    result=$?
+    if [ $result -eq 0 ]; then
+        echo -e '  \e[0;32mTest successful.\e[0m'
+    else
+        echo -e '  \e[0;31mTest failed.\e[0m'
+    fi
+    return $result
+}
+
+set -e
+
+test_dir="$(dirname "$0")"
+cp -f "$1" "$test_dir/pipefs"
+shift
+source "$test_dir/test_fw.sh"
+source "$test_dir/test_common.sh"
+
+fail_num=0
+run_num=0
+for test in "$@"; do
+    if ! run_test "$test"; then
+        (( ++fail_num ))
+    fi
+    (( ++run_num ))
+done
+
+echo "$fail_num out of $run_num failed."
+
+if [ $fail_num == 0 ]; then
+    exit 0
+else
+    exit 1
+fi
+
