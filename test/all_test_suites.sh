@@ -2,5 +2,5 @@
 
 function get_test_suites()
 {
-	echo "testsuites/01_basic.sh"
+	echo "testsuites/basic.sh"
 }
