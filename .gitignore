@@ -3,4 +3,5 @@ bbfs.log
 .tup
 /custom
 test/pipefs
+/test/logs
 
