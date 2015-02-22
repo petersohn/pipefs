@@ -66,8 +66,8 @@ while read testsuite; do
         if ! run_test "$test"; then
             (( ++fail_num ))
         fi
+        (( ++run_num ))
     done < <(get_test_cases)
-    (( ++run_num ))
 done < <(get_test_suites)
 
 echo "$fail_num out of $run_num failed."
