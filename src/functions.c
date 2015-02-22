@@ -506,11 +506,18 @@ int pipefs_write(const char *path, const char *buf, size_t size, off_t offset,
 	    path, buf, size, offset, fi
 	    );
 
-    retstat = pwrite(fi->fh, buf, size, offset);
-    if (retstat < 0)
-	retstat = pipefs_error("pipefs_write pwrite");
+    struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
+    log_msg("    filedata=%08x -- fd=%d, original_fd=%d, offset=%d\n",
+	    filedata, filedata->fd, filedata->original_fd, filedata->current_offset);
+    if (filedata->original_fd < 0) {
+	retstat = pwrite(filedata->fd, buf, size, offset);
+	if (retstat < 0)
+	    retstat = pipefs_error("pipefs_write pwrite");
 
-    return retstat;
+	return retstat;
+    } else {
+	return -EINVAL;
+    }
 }
 
 /** Get file system statistics
@@ -847,22 +854,25 @@ int pipefs_access(const char *path, int mask)
  */
 int pipefs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
-    int retstat = 0;
-    char fpath[PATH_MAX];
-    int fd;
-
     log_msg("\nbb_create(path=\"%s\", mode=0%03o, fi=0x%08x)\n",
 	    path, mode, fi);
+
+    char fpath[PATH_MAX];
     pipefs_fullpath(fpath, path);
     CHECK_SOURCE_PATH_CREATE(fpath);
 
-    fd = creat(fpath, mode);
-    if (fd < 0)
-	retstat = pipefs_error("pipefs_create creat");
+    struct pipefs_filedata* filedata = malloc(sizeof(struct pipefs_filedata));
+    int fd = creat(fpath, mode);
+    if (fd < 0) {
+	free(filedata);
+	return pipefs_error("pipefs_create creat");
+    }
 
-    fi->fh = fd;
+    filedata->fd = fd;
+    filedata->original_fd = -1;
+    fi->fh = (intptr_t)(filedata);
 
-    return retstat;
+    return 0;
 }
 
 /**

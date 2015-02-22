@@ -17,6 +17,8 @@ function get_test_cases()
 	echo "testcases/can_find_files_in_directories.sh"
 	echo "testcases/can_find_suffix_files_in_directories.sh"
 	echo "testcases/non_suffix_files_remain_unchanged.sh"
+	echo "testcases/can_write_to_non_suffix_files_on_mountpoint.sh"
+	echo "testcases/can_create_non_suffix_files_on_mountpoint.sh"
 }
 
 
