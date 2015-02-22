@@ -14,8 +14,9 @@ function test_cleanup()
 
 function get_test_cases()
 {
-	echo "testcases/non_suffix_files_remain_unchanged.sh"
 	echo "testcases/can_find_files_in_directories.sh"
+	echo "testcases/can_find_suffix_files_in_directories.sh"
+	echo "testcases/non_suffix_files_remain_unchanged.sh"
 }
 
 
