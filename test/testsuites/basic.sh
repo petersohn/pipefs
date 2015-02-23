@@ -4,7 +4,7 @@ function test_init()
 {
 	common_init
 	assert "$binary_name" --log-file "$log_dir/pipefs.log" --source-suffix .1 --target-suffix .2 --command tac --root-dir rootdir mountpoint
-	sleep 0.1
+	wait_for_fuse
 }
 
 function test_cleanup()
