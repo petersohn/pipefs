@@ -22,6 +22,7 @@ function get_test_cases()
 	echo "testcases/suffix_files_are_translated.sh"
 	echo "testcases/can_write_to_non_suffix_files_on_mountpoint.sh"
 	echo "testcases/can_create_non_suffix_files_on_mountpoint.sh"
+	echo "testcases/cannot_write_to_translated_files.sh"
 }
 
 
