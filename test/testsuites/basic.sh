@@ -23,8 +23,8 @@ function get_test_cases()
 
 	echo "testcases/permissions_are_correct_for_non_suffix_files.sh"
 	echo "testcases/permissions_are_correct_for_suffix_files.sh"
-	echo "testcases/can_write_to_non_suffix_files_on_mountpoint.sh"
-	echo "testcases/can_create_non_suffix_files_on_mountpoint.sh"
+	echo "testcases/can_write_to_non_suffix_files.sh"
+	echo "testcases/can_create_non_suffix_files.sh"
 	echo "testcases/cannot_write_to_translated_files.sh"
 }
 
