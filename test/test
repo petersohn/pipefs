@@ -12,6 +12,7 @@ function run_test()
         source "$test_dir/$test_name"
         cd "$test_dir"
         set +e
+        set -x
         (
             set -e
             test_init
@@ -20,7 +21,7 @@ function run_test()
         result=$?
         test_cleanup && exit $result
         exit $?
-    ) 2>"$log_dir/stderr.log" >"$log_dir/stdout.log"
+    ) 2>"$log_dir/stderr.log"
     result=$?
     if [ $result -eq 0 ]; then
         echo -e '    \e[0;32mTest successful.\e[0m'
