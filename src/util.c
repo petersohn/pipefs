@@ -6,24 +6,39 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 
-char* translate_suffix(const char* string, const char* from, const char* to)
+int is_suffix(const char* string, const char* suffix, size_t* prefix_length)
 {
 	size_t string_len = strlen(string);
-	size_t suffix_len = strlen(from);
+	size_t suffix_len = strlen(suffix);
 
 	if (string_len < suffix_len) {
+		return 0;
+	}
+
+	size_t local_prefix_len = string_len - suffix_len;
+
+	if (strcmp(string + local_prefix_len, suffix) != 0) {
+		return 0;
+	}
+
+	if (prefix_length) {
+		*prefix_length = local_prefix_len;
+	}
+
+	return 1;
+}
+
+char* translate_suffix(const char* string, const char* from, const char* to)
+{
+	size_t prefix_length = 0;
+
+	if (!is_suffix(string, from, &prefix_length)) {
 		return NULL;
 	}
 
-	size_t prefix_len = string_len - suffix_len;
-
-	if (strcmp(string + prefix_len, from) != 0) {
-		return NULL;
-	}
-
-	char* result = malloc(prefix_len + strlen(to) + 1);
-	strncpy(result, string, prefix_len);
-	strcpy(result + prefix_len, to);
+	char* result = malloc(prefix_length + strlen(to) + 1);
+	strncpy(result, string, prefix_length);
+	strcpy(result + prefix_length, to);
 	return result;
 }
 
