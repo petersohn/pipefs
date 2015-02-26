@@ -48,11 +48,26 @@ static int has_source_path(const char* fpath)
     char* translated_path = translate_file(fpath, data->source_suffix,
 	    data->target_suffix);
     free(translated_path);
-    return !!translated_path;
+    int result = !!translated_path;
+    if (result) {
+	log_msg("    has_source_path: returning error\n");
+    }
+
+    return result;
+}
+
+static int check_suffix(const char* fpath)
+{
+    int result = is_suffix(fpath, GET_DATA->source_suffix, NULL);
+    if (result) {
+	log_msg("    check_suffix: returning error\n");
+    }
+    return result;
 }
 
 #define CHECK_SOURCE_PATH_CREATE(fpath) if (has_source_path(fpath)) return -EEXIST
 #define CHECK_SOURCE_PATH_MODIFY(fpath) if (has_source_path(fpath)) return -EPERM
+#define CHECK_SOURCE_PATH(fpath) if (check_suffix(fpath)) return -ENOENT
 
 static void correct_stat_info(struct stat* statbuf)
 {
@@ -74,6 +89,7 @@ int pipefs_getattr(const char *path, struct stat *statbuf)
 
     char fpath[PATH_MAX];
     pipefs_fullpath(fpath, path);
+    CHECK_SOURCE_PATH(fpath);
 
     struct pipefs_data* data = GET_DATA;
     char* translated_path = translate_file(fpath, data->source_suffix,
@@ -119,6 +135,7 @@ int pipefs_readlink(const char *path, char *link, size_t size)
     log_msg("pipefs_readlink(path=\"%s\", link=\"%s\", size=%d)\n",
 	  path, link, size);
     pipefs_fullpath(fpath, path);
+    CHECK_SOURCE_PATH(fpath);
 
     retstat = readlink(fpath, link, size - 1);
     if (retstat < 0)
@@ -146,6 +163,7 @@ int pipefs_mknod(const char *path, mode_t mode, dev_t dev)
 	  path, mode, dev);
     pipefs_fullpath(fpath, path);
 
+    CHECK_SOURCE_PATH(fpath);
     CHECK_SOURCE_PATH_CREATE(fpath);
 
     // On Linux this could just be 'mknod(path, mode, rdev)' but this
@@ -201,6 +219,7 @@ int pipefs_unlink(const char *path)
     log_msg("pipefs_unlink(path=\"%s\")\n",
 	    path);
     pipefs_fullpath(fpath, path);
+    CHECK_SOURCE_PATH(fpath);
 
     struct pipefs_data* data = GET_DATA;
     char* translated_path = translate_file(fpath, data->source_suffix,
@@ -251,6 +270,7 @@ int pipefs_symlink(const char *path, const char *link)
     log_msg("\nbb_symlink(path=\"%s\", link=\"%s\")\n",
 	    path, link);
     pipefs_fullpath(flink, link);
+    CHECK_SOURCE_PATH(flink);
     CHECK_SOURCE_PATH_CREATE(flink);
 
     retstat = symlink(path, flink);
@@ -271,8 +291,10 @@ int pipefs_rename(const char *path, const char *newpath)
     log_msg("\nbb_rename(fpath=\"%s\", newpath=\"%s\")\n",
 	    path, newpath);
     pipefs_fullpath(fpath, path);
+    CHECK_SOURCE_PATH(fpath);
     CHECK_SOURCE_PATH_MODIFY(fnewpath);
     pipefs_fullpath(fnewpath, newpath);
+    CHECK_SOURCE_PATH(fnewpath);
     CHECK_SOURCE_PATH_CREATE(fnewpath);
 
     retstat = rename(fpath, fnewpath);
@@ -291,8 +313,10 @@ int pipefs_link(const char *path, const char *newpath)
     log_msg("\nbb_link(path=\"%s\", newpath=\"%s\")\n",
 	    path, newpath);
     pipefs_fullpath(fpath, path);
+    CHECK_SOURCE_PATH(fpath);
     CHECK_SOURCE_PATH_MODIFY(fnewpath);
     pipefs_fullpath(fnewpath, newpath);
+    CHECK_SOURCE_PATH(fnewpath);
     CHECK_SOURCE_PATH_CREATE(fnewpath);
 
     retstat = link(fpath, fnewpath);
@@ -311,6 +335,7 @@ int pipefs_chmod(const char *path, mode_t mode)
     log_msg("\nbb_chmod(fpath=\"%s\", mode=0%03o)\n",
 	    path, mode);
     pipefs_fullpath(fpath, path);
+    CHECK_SOURCE_PATH(fpath);
 
     struct pipefs_data* data = GET_DATA;
     char* translated_path = translate_file(fpath, data->source_suffix,
@@ -337,6 +362,7 @@ int pipefs_chown(const char *path, uid_t uid, gid_t gid)
     log_msg("\nbb_chown(path=\"%s\", uid=%d, gid=%d)\n",
 	    path, uid, gid);
     pipefs_fullpath(fpath, path);
+    CHECK_SOURCE_PATH(fpath);
 
     struct pipefs_data* data = GET_DATA;
     char* translated_path = translate_file(fpath, data->source_suffix,
@@ -359,6 +385,7 @@ int pipefs_truncate(const char *path, off_t newsize)
     log_msg("\nbb_truncate(path=\"%s\", newsize=%lld)\n",
 	    path, newsize);
     pipefs_fullpath(fpath, path);
+    CHECK_SOURCE_PATH(fpath);
     CHECK_SOURCE_PATH_MODIFY(fpath);
 
     retstat = truncate(fpath, newsize);
@@ -377,6 +404,7 @@ int pipefs_utime(const char *path, struct utimbuf *ubuf)
 
     log_msg("\nbb_utime(path=\"%s\", ubuf=0x%08x)\n",
 	    path, ubuf);
+    CHECK_SOURCE_PATH(fpath);
     pipefs_fullpath(fpath, path);
 
     struct pipefs_data* data = GET_DATA;
@@ -407,6 +435,7 @@ int pipefs_open(const char *path, struct fuse_file_info *fi)
 
     log_msg("\nbb_open(path\"%s\", fi=0x%08x)\n",
 	    path, fi);
+    CHECK_SOURCE_PATH(fpath);
     pipefs_fullpath(fpath, path);
 
     struct pipefs_data* data = GET_DATA;
@@ -535,6 +564,7 @@ int pipefs_statfs(const char *path, struct statvfs *statv)
     log_msg("\nbb_statfs(path=\"%s\", statv=0x%08x)\n",
 	    path, statv);
     pipefs_fullpath(fpath, path);
+    CHECK_SOURCE_PATH(fpath);
 
     struct pipefs_data* data = GET_DATA;
     char* translated_path = translate_file(fpath, data->source_suffix,
@@ -859,6 +889,7 @@ int pipefs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
     char fpath[PATH_MAX];
     pipefs_fullpath(fpath, path);
+    CHECK_SOURCE_PATH(fpath);
     CHECK_SOURCE_PATH_CREATE(fpath);
 
     struct pipefs_filedata* filedata = malloc(sizeof(struct pipefs_filedata));
