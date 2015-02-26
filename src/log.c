@@ -30,8 +30,13 @@ FILE* log_open(const char* filename)
 
 void log_msg(const char* format, ...)
 {
+    struct pipefs_data* data = GET_DATA;
+    if (!data->logfile) {
+        return;
+    }
+
     va_list ap;
     va_start(ap, format);
 
-    vfprintf(GET_DATA->logfile, format, ap);
+    vfprintf(data->logfile, format, ap);
 }
