@@ -452,6 +452,7 @@ int pipefs_open(const char *path, struct fuse_file_info *fi)
 
 	fd = spawn_command(data->command, translated_path, fi->flags, filedata);
 	fi->direct_io = 1;
+	fi->nonseekable = 1;
     } else {
 	fd = open(fpath, fi->flags);
 	filedata->fd = fd;
