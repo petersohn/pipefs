@@ -28,10 +28,9 @@ function wait_for_fuse()
 
 function common_cleanup()
 {
-	if ! run_with_tries 100 eval 'fusermount -u mountpoint && rm -rf mountpoint && [ ! -e mountpoint ]'; then
+	if ! run_with_tries 100 eval '[ ! -e mountpoint ] || fusermount -u mountpoint && rm -rf mountpoint && [ ! -e mountpoint ]'; then
 		echo "Failed to remove mountpoint."
 		exit 1
 	fi
-	rm -rf rootdir
 }
 
