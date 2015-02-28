@@ -34,3 +34,11 @@ function common_cleanup()
 	fi
 }
 
+function get_common_test_cases()
+{
+	echo "testcases/can_find_files_in_directories.sh"
+	echo "testcases/directory_listing_works_for_suffix_files.sh"
+	echo "testcases/can_find_suffix_files_in_directories.sh"
+	echo "testcases/suffix_files_are_translated.sh"
+}
+

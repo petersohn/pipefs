@@ -14,12 +14,10 @@ function test_cleanup()
 
 function get_test_cases()
 {
-	echo "testcases/can_find_files_in_directories.sh"
+	get_common_test_cases
+
 	echo "testcases/directory_listing_works_for_non_suffix_files.sh"
-	echo "testcases/directory_listing_works_for_suffix_files.sh"
-	echo "testcases/can_find_suffix_files_in_directories.sh"
 	echo "testcases/non_suffix_files_remain_unchanged.sh"
-	echo "testcases/suffix_files_are_translated.sh"
 	echo "testcases/cannot_access_original_suffix_file.sh"
 
 	echo "testcases/permissions_are_correct_for_non_suffix_files.sh"
