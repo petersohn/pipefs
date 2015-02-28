@@ -1,0 +1,7 @@
+
+include_rules
+include $(COMPILE_TUP)
+
+: foreach *.c |> !cc |>
+: foreach *.cpp |> !cxx |>
+
