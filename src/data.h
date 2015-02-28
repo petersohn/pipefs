@@ -1,3 +1,5 @@
+#include "cache/pipefs_cache.h"
+
 #include <limits.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -13,6 +15,9 @@ struct pipefs_data {
     char* source_suffix;
     char* target_suffix;
     char* command;
+    int seekable;
+
+    struct pipefs_readloop* readloop;
 };
 
 struct pipefs_filedata {
@@ -20,6 +25,7 @@ struct pipefs_filedata {
     int fd;
     pid_t pid;
     off_t current_offset;
+    struct pipefs_cache* cache;
 };
 
 #ifdef __cplusplus

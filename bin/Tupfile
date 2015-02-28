@@ -7,4 +7,4 @@ include $(COMPILE_TUP)
 
 include $(LINK_TUP)
 
-: ./*.o $(SOURCE_DIR)/*.o |> !linker |> pipefs
+: ./*.o $(SOURCE_DIR)/*.o $(CACHE_DIR)/*.o |> !linker |> pipefs

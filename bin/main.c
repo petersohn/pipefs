@@ -7,6 +7,7 @@
 #include <fuse.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 int main(int argc, char* argv[])
@@ -17,12 +18,14 @@ int main(int argc, char* argv[])
     }
 
     struct pipefs_data data;
+    memset(&data, 0, sizeof(struct pipefs_data));
+
     int fuse_argc = 0;
     char** fuse_argv = parse_arguments(argc, argv, &data, &fuse_argc);
 
     if (!fuse_argv) {
         // help invoked
-        return 0;
+        return 1;
     }
 
     if (!data.command) {

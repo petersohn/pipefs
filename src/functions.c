@@ -443,6 +443,7 @@ int pipefs_open(const char *path, struct fuse_file_info *fi)
 	    data->target_suffix);
 
     struct pipefs_filedata* filedata = malloc(sizeof(struct pipefs_filedata));
+    memset(filedata, 0, sizeof(struct pipefs_filedata));
     int fd;
     if (translated_path) {
 	if (fi->flags & (O_WRONLY | O_RDWR | O_CREAT)) {
@@ -452,7 +453,14 @@ int pipefs_open(const char *path, struct fuse_file_info *fi)
 
 	fd = spawn_command(data->command, translated_path, fi->flags, filedata);
 	fi->direct_io = 1;
-	fi->nonseekable = 1;
+
+	if (data->seekable) {
+	    fi->nonseekable = 0;
+	    filedata->cache = pipefs_cache_create();
+	    pipefs_readloop_add(data->readloop, fd, filedata->cache);
+	} else {
+	    fi->nonseekable = 1;
+	}
     } else {
 	fd = open(fpath, fi->flags);
 	filedata->fd = fd;
@@ -500,14 +508,19 @@ int pipefs_read(const char *path, char *buf, size_t size, off_t offset,
 	log_msg("    pread()");
 	retstat = pread(filedata->fd, buf, size, offset);
     } else {
-	if (offset != filedata->current_offset) {
-	    log_msg("    bad offset, expected=%d\n", filedata->current_offset);
-	    return -ESPIPE;
-	}
-	log_msg("    read()");
-	retstat = read(filedata->fd, buf, size);
-	if (retstat > 0) {
-	    filedata->current_offset += retstat;
+	if (filedata->cache) {
+	    log_msg("    cache_read()");
+	    retstat = pipefs_cache_read(filedata->cache, buf, size, offset);
+	} else {
+	    if (offset != filedata->current_offset) {
+		log_msg("    bad offset, expected=%d\n", filedata->current_offset);
+		return -ESPIPE;
+	    }
+	    log_msg("    read()");
+	    retstat = read(filedata->fd, buf, size);
+	    if (retstat > 0) {
+		filedata->current_offset += retstat;
+	    }
 	}
     }
     log_msg(" = %d\n", retstat);
@@ -641,6 +654,11 @@ int pipefs_release(const char *path, struct fuse_file_info *fi)
 	    result = waitpid(filedata->pid, NULL, 0);
 	    log_msg("        result = %s\n", strerror(errno));
 	} while (result == -1 && errno == EINTR);
+
+	if (filedata->cache) {
+	    pipefs_readloop_remove(GET_DATA->readloop, filedata->fd);
+	    pipefs_cache_destroy(filedata->cache);
+	}
     }
     retstat = close(filedata->fd);
     free(filedata);
@@ -819,7 +837,12 @@ void *pipefs_init(struct fuse_conn_info *conn)
 {
     log_msg("\nbb_init()\n");
     (void)conn;
-    return GET_DATA;
+
+    struct pipefs_data* data = GET_DATA;
+    data->readloop = pipefs_readloop_create();
+    pipefs_readloop_start(data->readloop);
+
+    return data;
 }
 
 /**
@@ -831,7 +854,10 @@ void *pipefs_init(struct fuse_conn_info *conn)
  */
 void pipefs_destroy(void *userdata)
 {
+    struct pipefs_data* data = (struct pipefs_data*)userdata;
     log_msg("\nbb_destroy(userdata=0x%08x)\n", userdata);
+    pipefs_readloop_stop(data->readloop);
+    pipefs_readloop_destroy(data->readloop);
 }
 
 /**
@@ -894,6 +920,7 @@ int pipefs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     CHECK_SOURCE_PATH_CREATE(fpath);
 
     struct pipefs_filedata* filedata = malloc(sizeof(struct pipefs_filedata));
+    memset(filedata, 0, sizeof(struct pipefs_filedata));
     int fd = creat(fpath, mode);
     if (fd < 0) {
 	free(filedata);

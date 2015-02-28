@@ -71,17 +71,15 @@ void ReadLoop::readFinished(CacheData& data,
 		std::size_t bytesTransferred)
 {
 	if (!errorCode) {
-		log_msg("Read from socket %d: %d bytes",
-				data.stream.native_handle(), bytesTransferred);
-
 		if (bytesTransferred > 0) {
 			data.cache.write(data.buffer, bytesTransferred);
 			startReading(data);
+			return;
 		}
 	} else {
-		log_msg("Error reading from socket %d: %s\n",
-				data.stream.native_handle(), errorCode.message().c_str());
 	}
+
+	data.cache.finish();
 }
 
 
