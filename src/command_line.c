@@ -8,64 +8,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <getopt.h>
-/*
-static int parse_argument_type(const char* argument_name, char** output,
-        int argc, char* argv[], int* i)
-{
-    if (strcmp(argv[*i], argument_name) == 0) {
-        if (++*i >= argc) {
-            return 1;
-        }
-
-        *output = argv[*i];
-        return 1;
-    }
-
-    return 0;
-}
-
-char** parse_arguments(int argc, char* argv[], struct pipefs_data* data,
-        int* argc_out)
-{
-    *argc_out = 0;
-    memset(data, 0, sizeof(struct pipefs_data));
-    size_t alloc_size = argc * sizeof(char*);
-    char** result = malloc(alloc_size);
-    memset(result, 0, sizeof(char*));
-
-    char* log_file_name = NULL;
-
-    for (int i = 0; i < argc; ++i) {
-        if (strcmp(argv[i], "--help") == 0) {
-            print_usage(argv[0]);
-            free(result);
-            return NULL;
-        }
-
-        if (parse_argument_type("--source-suffix", &data->source_suffix,
-                    argc, argv, &i) ||
-            parse_argument_type("--target-suffix", &data->target_suffix,
-                    argc, argv, &i) ||
-            parse_argument_type("--root-dir", &data->rootdir,
-                    argc, argv, &i) ||
-            parse_argument_type("--log-file", &log_file_name,
-                    argc, argv, &i) ||
-            parse_argument_type("--command", &data->command,
-                    argc, argv, &i)) {
-            continue;
-        }
-
-        result[*argc_out] = argv[i];
-        ++*argc_out;
-    }
-
-    if (log_file_name) {
-        data->logfile = log_open(log_file_name);
-    }
-
-    return result;
-}
-*/
 
 static struct option options[] = {
     {"help",          no_argument,       NULL, 'h'},
