@@ -3,6 +3,7 @@ export EXTRA_LD_FLAGS
 
 LIBS += -lpthread
 LIBS += -lfuse
+LIBS += -lboost_system
 LIBS += @(PROFILER_LIBS)
 
 LD_FLAGS += $EXTRA_LD_FLAGS
