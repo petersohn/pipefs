@@ -38,54 +38,59 @@ BOOST_FIXTURE_TEST_SUITE(CommandLineTest, CommandLineFixture)
 
 BOOST_AUTO_TEST_CASE(only_fuse_params)
 {
-	const char* args[] = {"first", "second", "third"};
-	result = parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
-	BOOST_CHECK_EQUAL(resultLength, 3);
-	CHECK_ARRAY(result, STRINGIZE_SEQ(("first")("second")("third")));
+	const char* args[] = {"pipefs", "first", "second", "third"};
+	result = parse_arguments(4, const_cast<char**>(args), &data, &resultLength);
+	BOOST_CHECK_EQUAL(resultLength, 4);
+	CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")("first")("second")("third")));
 }
 
 BOOST_AUTO_TEST_CASE(parse_command)
 {
 	std::string value = "some command";
-	const char* args[] = {"--command", value.c_str()};
-	result = parse_arguments(2, const_cast<char**>(args), &data, &resultLength);
-	BOOST_CHECK_EQUAL(resultLength, 0);
+	const char* args[] = {"pipefs", "--command", value.c_str()};
+	result = parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+	BOOST_CHECK_EQUAL(resultLength, 1);
+	CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
 	CHECK_STRING(data.command, value);
 }
 
 BOOST_AUTO_TEST_CASE(parse_source_suffix)
 {
 	std::string value = "some suffix";
-	const char* args[] = {"--source-suffix", value.c_str()};
-	result = parse_arguments(2, const_cast<char**>(args), &data, &resultLength);
-	BOOST_CHECK_EQUAL(resultLength, 0);
+	const char* args[] = {"pipefs", "--source-suffix", value.c_str()};
+	result = parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+	BOOST_CHECK_EQUAL(resultLength, 1);
+	CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
 	CHECK_STRING(data.source_suffix, value);
 }
 
 BOOST_AUTO_TEST_CASE(parse_target_suffix)
 {
 	std::string value = "some suffix";
-	const char* args[] = {"--target-suffix", value.c_str()};
-	result = parse_arguments(2, const_cast<char**>(args), &data, &resultLength);
-	BOOST_CHECK_EQUAL(resultLength, 0);
+	const char* args[] = {"pipefs", "--target-suffix", value.c_str()};
+	result = parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+	BOOST_CHECK_EQUAL(resultLength, 1);
+	CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
 	CHECK_STRING(data.target_suffix, value);
 }
 
 BOOST_AUTO_TEST_CASE(parse_root_dir)
 {
 	std::string value = "some dir";
-	const char* args[] = {"--root-dir", value.c_str()};
-	result = parse_arguments(2, const_cast<char**>(args), &data, &resultLength);
-	BOOST_CHECK_EQUAL(resultLength, 0);
+	const char* args[] = {"pipefs", "--root-dir", value.c_str()};
+	result = parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+	BOOST_CHECK_EQUAL(resultLength, 1);
+	CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
 	CHECK_STRING(data.rootdir, value);
 }
 
 BOOST_AUTO_TEST_CASE(parse_log_file)
 {
 	std::string value = "log.txt";
-	const char* args[] = {"--log-file", value.c_str()};
-	result = parse_arguments(2, const_cast<char**>(args), &data, &resultLength);
-	BOOST_CHECK_EQUAL(resultLength, 0);
+	const char* args[] = {"pipefs", "--log-file", value.c_str()};
+	result = parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+	BOOST_CHECK_EQUAL(resultLength, 1);
+	CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
 	int unlinkResult;
 	CHECKED_SYSCALL(unlink(value.c_str()), unlinkResult);
 }
@@ -97,13 +102,15 @@ BOOST_AUTO_TEST_CASE(parse_all_values)
 	std::string targetSuffix = "target suffix";
 	std::string rootDir = "rootDir";
 	const char* args[] = {
+			"pipefs",
 			"--root-dir", rootDir.c_str(),
 			"--command", command.c_str(),
 			"--source-suffix", sourceSuffix.c_str(),
 			"--target-suffix", targetSuffix.c_str(),
 		};
-	result = parse_arguments(8, const_cast<char**>(args), &data, &resultLength);
-	BOOST_CHECK_EQUAL(resultLength, 0);
+	result = parse_arguments(9, const_cast<char**>(args), &data, &resultLength);
+	BOOST_CHECK_EQUAL(resultLength, 1);
+	CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
 	CHECK_STRING(data.rootdir, rootDir);
 	CHECK_STRING(data.command, command);
 	CHECK_STRING(data.source_suffix, sourceSuffix);
@@ -121,21 +128,20 @@ BOOST_AUTO_TEST_CASE(parse_all_values_plus_fuse_options)
 	std::string arg3 = "-arg3";
 	std::string arg4 = "--arg4";
 	const char* args[] = {
-			arg1.c_str(), arg2.c_str(),
+			"pipefs",
 			"--root-dir", rootDir.c_str(),
 			"--command", command.c_str(),
-			arg3.c_str(),
 			"--source-suffix", sourceSuffix.c_str(),
 			"--target-suffix", targetSuffix.c_str(),
-			arg4.c_str(),
+			"--", arg1.c_str(), arg2.c_str(), arg3.c_str(), arg4.c_str(),
 		};
-	result = parse_arguments(12, const_cast<char**>(args), &data, &resultLength);
+	result = parse_arguments(14, const_cast<char**>(args), &data, &resultLength);
 	CHECK_STRING(data.rootdir, rootDir);
 	CHECK_STRING(data.command, command);
 	CHECK_STRING(data.source_suffix, sourceSuffix);
 	CHECK_STRING(data.target_suffix, targetSuffix);
-	BOOST_REQUIRE_EQUAL(resultLength, 4);
-	CHECK_ARRAY(result, (arg1)(arg2)(arg3)(arg4));
+	BOOST_REQUIRE_EQUAL(resultLength, 5);
+	CHECK_ARRAY(result, (std::string{"pipefs"})(arg1)(arg2)(arg3)(arg4));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
