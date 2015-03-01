@@ -15,6 +15,7 @@ function test_cleanup()
 function get_test_cases()
 {
 	get_common_test_cases
+	echo "testcases/can_seek_in_translated_files.sh"
 }
 
 
