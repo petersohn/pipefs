@@ -1,14 +1,12 @@
 #!/bin/bash
 
-command="sed 's/^/->/'"
-
 function check_file()
 {
 	local filename="$1"
 	local translated_filename="${filename/%.1/.2}"
 
 	local file_contents=$(< "rootdir/$filename")
-    local expected_file_contents=$(eval "$command" <<<"$file_contents")
+    local expected_file_contents=$(get_expected_file_contents rootdir/$filename)
     local read_file_contents="$(cat "mountpoint/$translated_filename")"
     assert [ "$expected_file_contents" == "$read_file_contents" ]
 }

@@ -1,7 +1,5 @@
 #!/bin/bash
 
-command="sed 's/^/->/'"
-
 function test_run()
 {
     local filename=filename.1
@@ -12,7 +10,7 @@ function test_run()
 	done
 
 	local file_contents=$(< rootdir/$filename)
-    local expected_file_contents=$(eval "$command" <<<"$file_contents")
+    local expected_file_contents=$(get_expected_file_contents rootdir/$filename)
     local read_file_contents="$(cat mountpoint/$translated_filename)"
     assert [ "$expected_file_contents" == "$read_file_contents" ]
 }

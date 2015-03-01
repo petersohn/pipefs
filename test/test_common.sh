@@ -20,11 +20,12 @@ function run_with_tries()
 
 function get_command()
 {
-	if [ -n "$command" ]; then
-		echo "$command"
-	else
-		echo tac
-	fi
+	echo "${command:-sed 's/^/->/'}"
+}
+
+function get_expected_file_contents()
+{
+	eval "$(get_command)" <"$1"
 }
 
 function wait_for_fuse()
