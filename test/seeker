@@ -6,8 +6,8 @@ open(my $fh, "<", $ARGV[0]) or die "Cannot open $ARGV[1]: $!";
 
 my $i = 0;
 for ($i = 1; $i <= $#ARGV; $i += 2) {
-    sysseek($fh, $ARGV[$i], 0);
-    sysread($fh, my $data, $ARGV[$i+1]);
+    sysseek($fh, $ARGV[$i], 0) or die "Seek failed: $!";
+    sysread($fh, my $data, $ARGV[$i+1]) or die "Read failed: $!";
     print($data);
 }
 
