@@ -18,6 +18,15 @@ function run_with_tries()
 	[ $tries -gt 0 ]
 }
 
+function get_command()
+{
+	if [ -n "$command" ]; then
+		echo "$command"
+	else
+		echo tac
+	fi
+}
+
 function wait_for_fuse()
 {
 	if ! run_with_tries 100 ls mountpoint >/dev/null 2>&1; then
@@ -40,5 +49,6 @@ function get_common_test_cases()
 	echo "testcases/directory_listing_works_for_suffix_files.sh"
 	echo "testcases/can_find_suffix_files_in_directories.sh"
 	echo "testcases/suffix_files_are_translated.sh"
+	echo "testcases/translation_works_for_large_files.sh"
 }
 

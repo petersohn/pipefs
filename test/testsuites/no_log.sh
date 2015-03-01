@@ -3,7 +3,7 @@
 function test_init()
 {
 	common_init
-	assert "$binary_name" --source-suffix .1 --target-suffix .2 --command tac --root-dir rootdir mountpoint
+	assert "$binary_name" --source-suffix .1 --target-suffix .2 --command "$(get_command)" --root-dir rootdir mountpoint
 	wait_for_fuse
 }
 
