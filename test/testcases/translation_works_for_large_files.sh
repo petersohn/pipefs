@@ -11,10 +11,8 @@ function test_run()
 		echo "This is the next line of the file: $i" >>rootdir/$filename
 	done
 
-	local file_contents=$(cat rootdir/$filename)
-    local expected_file_contents=$(echo "$file_contents" | eval "$command")
-
-    echo "$file_contents" >rootdir/$filename
+	local file_contents=$(< rootdir/$filename)
+    local expected_file_contents=$(eval "$command" <<<"$file_contents")
     local read_file_contents="$(cat mountpoint/$translated_filename)"
     assert [ "$expected_file_contents" == "$read_file_contents" ]
 }

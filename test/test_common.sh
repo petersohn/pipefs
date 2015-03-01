@@ -50,5 +50,6 @@ function get_common_test_cases()
 	echo "testcases/can_find_suffix_files_in_directories.sh"
 	echo "testcases/suffix_files_are_translated.sh"
 	echo "testcases/translation_works_for_large_files.sh"
+	echo "testcases/translation_works_in_parallel.sh"
 }
 
