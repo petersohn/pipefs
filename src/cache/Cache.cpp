@@ -36,5 +36,17 @@ void Cache::finish()
 	readWaiter.notify_all();
 }
 
+bool Cache::isFinished() const
+{
+	std::unique_lock<std::mutex> lock{mutex};
+	return finished;
+}
+
+std::size_t Cache::getSize() const
+{
+	std::unique_lock<std::mutex> lock{mutex};
+	return data.size();
+}
+
 }
 
