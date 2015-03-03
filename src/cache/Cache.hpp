@@ -19,7 +19,7 @@ public:
 	Cache(const Cache&) = delete;
 	Cache& operator=(const Cache&) = delete;
 	Cache(Cache&& other): data(std::move(other.data)), finished(other.finished)
-			{}
+	{}
 	Cache& operator=(Cache&&) = default;
 
 private:
