@@ -17,6 +17,7 @@ MOCK_CLASS(MockCache) {
 	static std::set<int> destroyedIds;
 	MockCache():id(maxId++) {
 	}
+
 	MockCache(MockCache&& other):id(maxId++) {
 	}
 

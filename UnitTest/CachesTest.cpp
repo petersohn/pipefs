@@ -42,6 +42,66 @@ BOOST_AUTO_TEST_CASE(add_then_get_different)
 	BOOST_CHECK_EQUAL(MockCache::destroyedIds.count(id2), 0);
 }
 
+BOOST_AUTO_TEST_CASE(cache_remains_active_after_release)
+{
+	std::string key = "filename";
+	auto result = caches.get(key);
+	int id = result.first.id;
+	caches.release(key);
+	BOOST_CHECK_EQUAL(MockCache::destroyedIds.count(id), 0);
+}
+
+BOOST_AUTO_TEST_CASE(cleanup_cleans_up_entries)
+{
+	std::string key = "filename";
+	auto result = caches.get(key);
+	int id = result.first.id;
+	MOCK_EXPECT(result.first.getSize).returns(10);
+	MOCK_EXPECT(result.first.isFinished).returns(true);
+
+	caches.release(key);
+	caches.cleanup(0);
+	BOOST_CHECK_EQUAL(MockCache::destroyedIds.count(id), 1);
+}
+
+BOOST_AUTO_TEST_CASE(cleanup_does_not_clean_up_entries_that_are_not_released)
+{
+	std::string key = "filename";
+	auto result = caches.get(key);
+	int id = result.first.id;
+	MOCK_EXPECT(result.first.getSize).returns(10);
+	MOCK_EXPECT(result.first.isFinished).returns(true);
+
+	caches.cleanup(0);
+	BOOST_CHECK_EQUAL(MockCache::destroyedIds.count(id), 0);
+}
+
+BOOST_AUTO_TEST_CASE(cleanup_does_not_clean_up_entries_that_are_not_finished)
+{
+	std::string key = "filename";
+	auto result = caches.get(key);
+	int id = result.first.id;
+	MOCK_EXPECT(result.first.getSize).returns(10);
+	MOCK_EXPECT(result.first.isFinished).returns(false);
+
+	caches.release(key);
+	caches.cleanup(0);
+	BOOST_CHECK_EQUAL(MockCache::destroyedIds.count(id), 0);
+}
+
+BOOST_AUTO_TEST_CASE(cleanup_does_not_clean_up_entries_if_there_is_enough_space)
+{
+	std::string key = "filename";
+	auto result = caches.get(key);
+	int id = result.first.id;
+	MOCK_EXPECT(result.first.getSize).returns(10);
+	MOCK_EXPECT(result.first.isFinished).returns(true);
+
+	caches.release(key);
+	caches.cleanup(20);
+	BOOST_CHECK_EQUAL(MockCache::destroyedIds.count(id), 0);
+}
+
 BOOST_AUTO_TEST_CASE(cleanup_cleans_up_old_entries_until_necessary)
 {
 	std::string key1 = "filename1";
