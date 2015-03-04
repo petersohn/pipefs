@@ -2,6 +2,7 @@
 include_rules
 
 include $(COMPILE_TUP)
+INCLUDE_DIRS += -I$(TURTLE_DIR)/include
 
 : foreach *.cpp |> !cxx |>
 
