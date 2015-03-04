@@ -2,6 +2,9 @@
 #define UNITTEST_MOCKCACHE_HPP
 
 #include <turtle/mock.hpp>
+#include <set>
+
+namespace pipefs {
 
 MOCK_CLASS(MockCache) {
 	MOCK_METHOD(write, 2, void(const void*, std::size_t));
@@ -11,10 +14,19 @@ MOCK_CLASS(MockCache) {
 	MOCK_CONST_METHOD(getSize, 0, std::size_t());
 
 	int id;
-	MockCache() {
-		static int maxId = 0;
-		id = maxId++;
+	static std::set<int> destroyedIds;
+	MockCache():id(maxId++) {
 	}
+	MockCache(MockCache&& other):id(maxId++) {
+	}
+
+	~MockCache() {
+		destroyedIds.insert(id);
+	}
+private:
+	static int maxId;
 };
+
+}
 
 #endif /* UNITTEST_MOCKCACHE_HPP */

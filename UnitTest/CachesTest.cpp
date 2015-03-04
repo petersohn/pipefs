@@ -24,6 +24,7 @@ BOOST_AUTO_TEST_CASE(add_then_get_same)
 	BOOST_CHECK(!result2.second);
 	int id2 = result2.first.id;
 	BOOST_CHECK_EQUAL(id1, id2);
+	BOOST_CHECK_EQUAL(MockCache::destroyedIds.count(id1), 0);
 }
 
 BOOST_AUTO_TEST_CASE(add_then_get_different)
@@ -37,6 +38,8 @@ BOOST_AUTO_TEST_CASE(add_then_get_different)
 	BOOST_CHECK(result2.second);
 	int id2 = result2.first.id;
 	BOOST_CHECK_NE(id1, id2);
+	BOOST_CHECK_EQUAL(MockCache::destroyedIds.count(id1), 0);
+	BOOST_CHECK_EQUAL(MockCache::destroyedIds.count(id2), 0);
 }
 
 BOOST_AUTO_TEST_CASE(cleanup_cleans_up_old_entries_until_necessary)
