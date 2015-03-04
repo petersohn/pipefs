@@ -102,6 +102,23 @@ BOOST_AUTO_TEST_CASE(cleanup_does_not_clean_up_entries_if_there_is_enough_space)
 	BOOST_CHECK_EQUAL(MockCache::destroyedIds.count(id), 0);
 }
 
+BOOST_AUTO_TEST_CASE(cleanup_cleans_up_entries_only_after_the_appropriate_number_of_releases)
+{
+	std::string key = "filename";
+	auto result1 = caches.get(key);
+	auto result2 = caches.get(key);
+	int id = result1.first.id;
+	MOCK_EXPECT(result1.first.getSize).returns(10);
+	MOCK_EXPECT(result1.first.isFinished).returns(true);
+
+	caches.release(key);
+	caches.cleanup(0);
+	BOOST_CHECK_EQUAL(MockCache::destroyedIds.count(id), 0);
+	caches.release(key);
+	caches.cleanup(0);
+	BOOST_CHECK_EQUAL(MockCache::destroyedIds.count(id), 1);
+}
+
 BOOST_AUTO_TEST_CASE(cleanup_cleans_up_old_entries_until_necessary)
 {
 	std::string key1 = "filename1";
