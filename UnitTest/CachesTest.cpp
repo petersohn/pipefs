@@ -2,13 +2,14 @@
 
 #include "MockCache.hpp"
 #include "StubLogger.hpp"
+#include "FakeTimeUtil.hpp"
 
 #include <boost/test/unit_test.hpp>
 
 using namespace pipefs;
 
 struct CachesFixture {
-	BasicCaches<MockCache, StubLogger> caches;
+	BasicCaches<MockCache, StubLogger, FakeTimeUtil> caches;
 };
 
 BOOST_FIXTURE_TEST_SUITE(CachesTest, CachesFixture)

@@ -8,14 +8,14 @@
 #include <algorithm>
 #include <vector>
 
-#include "TimeUtil.hpp"
-
 namespace pipefs {
 
-template <typename Cache, typename Logger>
+template <typename Cache, typename Logger, typename TimeUtil>
 class BasicCaches {
 public:
-	BasicCaches(Logger logger = Logger{}):logger(std::move(logger)) {}
+	BasicCaches(Logger logger = Logger{}, TimeUtil timeUtil = TimeUtil{}):
+		logger(std::move(logger)), timeUtil(std::move(timeUtil))
+	{}
 
 	std::pair<Cache&, bool> get(const std::string& key)
 	{
@@ -29,7 +29,7 @@ public:
 
 		auto& data = it->second;
 
-		data.lastAccessed = now();
+		data.lastAccessed = timeUtil.now();
 		++data.usageCount;
 		return {data.cache, false};
 	}
@@ -43,7 +43,7 @@ public:
 			auto& data = it->second;
 			assert(data.usageCount != 0);
 			--data.usageCount;
-			data.lastAccessed = now();
+			data.lastAccessed = timeUtil.now();
 		}
 	}
 
@@ -88,7 +88,7 @@ public:
 private:
 	struct CacheData {
 		Cache cache;
-		std::chrono::steady_clock::time_point lastAccessed;
+		typename TimeUtil::time_point lastAccessed;
 		unsigned usageCount;
 
 		CacheData() = default;
@@ -101,6 +101,7 @@ private:
 	std::mutex mutex;
 	std::map<std::string, CacheData> caches;
 	Logger logger;
+	TimeUtil timeUtil;
 
 	CacheData& add(const std::string& key)
 	{
@@ -108,7 +109,7 @@ private:
 		assert(emplaceResult.second);
 
 		auto& data = emplaceResult.first->second;
-		data.lastAccessed = now();
+		data.lastAccessed = timeUtil.now();
 		data.usageCount = 1;
 
 		return data;
