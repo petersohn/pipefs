@@ -19,9 +19,11 @@ BOOST_AUTO_TEST_CASE(add_then_get_same)
 	std::string key = "filename";
 	auto result1 = caches.get(key);
 	BOOST_CHECK(result1.second);
+	int id1 = result1.first.id;
 	auto result2 = caches.get(key);
 	BOOST_CHECK(!result2.second);
-	BOOST_CHECK_EQUAL(&result1.first, &result2.first);
+	int id2 = result2.first.id;
+	BOOST_CHECK_EQUAL(id1, id2);
 }
 
 BOOST_AUTO_TEST_CASE(add_then_get_different)
@@ -30,9 +32,11 @@ BOOST_AUTO_TEST_CASE(add_then_get_different)
 	std::string key2 = "filename2";
 	auto result1 = caches.get(key1);
 	BOOST_CHECK(result1.second);
+	int id1 = result1.first.id;
 	auto result2 = caches.get(key2);
 	BOOST_CHECK(result2.second);
-	BOOST_CHECK_NE(&result1.first, &result2.first);
+	int id2 = result2.first.id;
+	BOOST_CHECK_NE(id1, id2);
 }
 
 BOOST_AUTO_TEST_CASE(cleanup_cleans_up_old_entries_until_necessary)
