@@ -95,6 +95,15 @@ BOOST_AUTO_TEST_CASE(parse_log_file)
 	CHECKED_SYSCALL(unlink(value.c_str()), unlinkResult);
 }
 
+BOOST_AUTO_TEST_CASE(parse_seekable)
+{
+	const char* args[] = {"pipefs", "--seekable"};
+	result = parse_arguments(2, const_cast<char**>(args), &data, &resultLength);
+	BOOST_CHECK_EQUAL(resultLength, 1);
+	CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
+	BOOST_CHECK_EQUAL(data.seekable, 1);
+}
+
 BOOST_AUTO_TEST_CASE(parse_all_values)
 {
 	std::string command = "command";
