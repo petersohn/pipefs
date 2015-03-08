@@ -16,6 +16,8 @@ struct pipefs_data {
     char* target_suffix;
     char* command;
     int seekable;
+    int cache;
+    size_t cache_limit;
 
     struct pipefs_readloop* readloop;
 };

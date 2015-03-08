@@ -4,6 +4,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/preprocessor/seq/for_each_i.hpp>
+#include <boost/lexical_cast.hpp>
 #include <string>
 
 #define _CHECK_ARRAY_ELEMENT(r, array, i, elem) \
@@ -22,11 +23,91 @@
 	} \
 } while (false)
 
+struct ParseSizeTestFixture {
+	std::size_t testParseSize(std::size_t size, char unit)
+	{
+		std::string inputString = boost::lexical_cast<std::string>(size) + unit;
+		return parse_size(inputString.c_str());
+	}
+};
+
+BOOST_FIXTURE_TEST_SUITE(ParseSizeTest, ParseSizeTestFixture)
+
+BOOST_AUTO_TEST_CASE(no_unit)
+{
+	std::size_t value = 2354;
+	std::string inputString = boost::lexical_cast<std::string>(value);
+	std::size_t result = parse_size(inputString.c_str());
+	BOOST_CHECK_EQUAL(result, value);
+}
+
+BOOST_AUTO_TEST_CASE(unit_b)
+{
+	std::size_t value = 3457;
+	std::size_t result = testParseSize(value, 'b');
+	BOOST_CHECK_EQUAL(result, value);
+}
+
+BOOST_AUTO_TEST_CASE(unit_B)
+{
+	std::size_t value = 378314;
+	std::size_t result = testParseSize(value, 'B');
+	BOOST_CHECK_EQUAL(result, value);
+}
+
+BOOST_AUTO_TEST_CASE(unit_k)
+{
+	std::size_t value = 8222;
+	std::size_t result = testParseSize(value, 'k');
+	BOOST_CHECK_EQUAL(result, value * 1024);
+}
+
+BOOST_AUTO_TEST_CASE(unit_K)
+{
+	std::size_t value = 6210;
+	std::size_t result = testParseSize(value, 'K');
+	BOOST_CHECK_EQUAL(result, value * 1000);
+}
+
+BOOST_AUTO_TEST_CASE(unit_m)
+{
+	std::size_t value = 1265;
+	std::size_t result = testParseSize(value, 'm');
+	BOOST_CHECK_EQUAL(result, value * 1024 * 1024);
+}
+
+BOOST_AUTO_TEST_CASE(unit_M)
+{
+	std::size_t value = 384;
+	std::size_t result = testParseSize(value, 'M');
+	BOOST_CHECK_EQUAL(result, value * 1000 * 1000);
+}
+
+BOOST_AUTO_TEST_CASE(unit_g)
+{
+	std::size_t value = 1;
+	std::size_t result = testParseSize(value, 'g');
+	BOOST_CHECK_EQUAL(result, value * 1024 * 1024 * 1024);
+}
+
+BOOST_AUTO_TEST_CASE(unit_G)
+{
+	std::size_t value = 2;
+	std::size_t result = testParseSize(value, 'G');
+	BOOST_CHECK_EQUAL(result, value * 1000 * 1000 * 1000);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
 
 struct CommandLineFixture {
 	char** result = nullptr;
 	int resultLength;
 	struct pipefs_data data;
+
+	CommandLineFixture()
+	{
+		memset(&data, 0, sizeof(data));
+	}
 
 	~CommandLineFixture()
 	{
@@ -102,6 +183,28 @@ BOOST_AUTO_TEST_CASE(parse_seekable)
 	BOOST_CHECK_EQUAL(resultLength, 1);
 	CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
 	BOOST_CHECK_EQUAL(data.seekable, 1);
+	BOOST_CHECK_EQUAL(data.cache, 0);
+}
+
+BOOST_AUTO_TEST_CASE(parse_cache)
+{
+	const char* args[] = {"pipefs", "--cache"};
+	result = parse_arguments(2, const_cast<char**>(args), &data, &resultLength);
+	BOOST_CHECK_EQUAL(resultLength, 1);
+	CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
+	BOOST_CHECK_EQUAL(data.seekable, 1);
+	BOOST_CHECK_EQUAL(data.cache, 1);
+}
+
+BOOST_AUTO_TEST_CASE(parse_cache_limit)
+{
+	std::string valueString = "463467";
+	std::size_t value = boost::lexical_cast<std::size_t>(valueString);
+	const char* args[] = {"pipefs", "--cache-limit", valueString.c_str()};
+	result = parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+	BOOST_CHECK_EQUAL(resultLength, 1);
+	CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
+	BOOST_CHECK_EQUAL(data.cache_limit, value);
 }
 
 BOOST_AUTO_TEST_CASE(parse_all_values)

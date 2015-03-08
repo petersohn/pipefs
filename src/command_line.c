@@ -12,6 +12,8 @@
 static struct option options[] = {
     {"help",          no_argument,       NULL, 'h'},
     {"command",       required_argument, NULL, 'c'},
+    {"cache",         no_argument,       NULL, 'C'},
+    {"cache-limit",   required_argument, NULL, 'L'},
     {"log-file",      required_argument, NULL, 'l'},
     {"root-dir",      required_argument, NULL, 'r'},
     {"seekable",      no_argument,       NULL, 'k'},
@@ -19,13 +21,58 @@ static struct option options[] = {
     {"target-suffix", required_argument, NULL, 't'},
 };
 
+size_t parse_size(const char* input)
+{
+    unsigned parsed_result = 0;
+    char type[2] = "b";
+    int scanf_result = sscanf(input, "%u%[bBkKmMgG]", &parsed_result, type);
+    if (scanf_result == EOF) {
+	perror("parse_size");
+	exit(1);
+    }
+
+    if (scanf_result == 0) {
+	fprintf(stderr, "Error in size input.\n");
+	exit(1);
+    }
+
+    size_t result = parsed_result;
+    switch (type[0]) {
+	case 'b':
+	case 'B':
+	    break;
+
+	case 'g':
+	    result *= 1024;
+	    // fallthrough
+	case 'm':
+	    result *= 1024;
+	    // fallthrough
+	case 'k':
+	    result *= 1024;
+	    break;
+
+	case 'G':
+	    result *= 1000;
+	    // fallthrough
+	case 'M':
+	    result *= 1000;
+	    // fallthrough
+	case 'K':
+	    result *= 1000;
+	    break;
+    }
+
+    return result;
+}
+
 char** parse_arguments(int argc, char* argv[], struct pipefs_data* data,
 		int* argc_out)
 {
     int option;
     optind = 0;
     while ((option =
-            getopt_long(argc, argv, "hc:l:ks:t:", options, NULL)) >= 0) {
+            getopt_long(argc, argv, "hc:C:l:ks:t:", options, NULL)) >= 0) {
         switch (option) {
         case 'h':
             print_usage(argv[0]);
@@ -33,6 +80,12 @@ char** parse_arguments(int argc, char* argv[], struct pipefs_data* data,
         case 'c':
             data->command = optarg;
             break;
+        case 'C':
+	    data->seekable = 1;
+	    data->cache = 1;
+            break;
+	case 'L':
+	    data->cache_limit = parse_size(optarg);
         case 'k':
 	    data->seekable = 1;
             break;
