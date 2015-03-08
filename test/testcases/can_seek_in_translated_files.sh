@@ -21,6 +21,7 @@ function test_run()
     local expected_file_contents="${string2}${string1}${string3}${string2}"
     local read_file_contents="$("$test_dir/seeker" mountpoint/$translated_filename $pos2 $len2 $pos1 $len1 $pos3 $len3 $pos2 $len2)"
     assert [ "$expected_file_contents" == "$read_file_contents" ]
+    assert_false lsof rootdir/$filename
 }
 
 

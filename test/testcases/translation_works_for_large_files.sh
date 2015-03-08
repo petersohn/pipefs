@@ -13,6 +13,7 @@ function test_run()
     local expected_file_contents=$(get_expected_file_contents rootdir/$filename)
     local read_file_contents="$(cat mountpoint/$translated_filename)"
     assert [ "$expected_file_contents" == "$read_file_contents" ]
+    assert_false lsof rootdir/$filename
 }
 
 

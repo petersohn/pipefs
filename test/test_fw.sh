@@ -8,12 +8,10 @@ function assert()
 	fi
 }
 
-function assert_msg()
+function assert_false()
 {
-	msg="$1"
-	shift
-	if ! "$@"; then
-		echo "Assertion failed: $msg"
+	if "$@"; then
+		echo "Assertion failed: $@"
 		exit 1
 	fi
 }

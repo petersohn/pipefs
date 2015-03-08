@@ -8,5 +8,6 @@ function test_run()
     echo -n "$file_contents" >mountpoint/$filename
     local read_file_contents="$(cat rootdir/$filename)"
     assert [ "$file_contents" == "$read_file_contents" ]
+    assert_false lsof rootdir/$filename
 }
 
