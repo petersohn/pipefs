@@ -456,15 +456,9 @@ int pipefs_open(const char *path, struct fuse_file_info *fi)
 	fi->direct_io = 1;
 
 	if (data->seekable) {
-	    int new_fd = dup(fd);
-	    if (new_fd < 0) {
-		free(filedata);
-		return pipefs_error("pipefs_open open");
-	    }
-
 	    fi->nonseekable = 0;
 	    filedata->cache = pipefs_cache_create();
-	    pipefs_readloop_add(data->readloop, new_fd, filedata->cache);
+	    pipefs_readloop_add(data->readloop, fd, filedata->cache);
 	} else {
 	    fi->nonseekable = 1;
 	}
@@ -663,13 +657,15 @@ int pipefs_release(const char *path, struct fuse_file_info *fi)
 	    result = waitpid(filedata->pid, NULL, 0);
 	    log_msg("        result = %s\n", strerror(errno));
 	} while (result == -1 && errno == EINTR);
+	log_msg("    Children finished.\n");
 
 	if (filedata->cache) {
 	    pipefs_readloop_remove(GET_DATA->readloop, filedata->fd);
 	    pipefs_cache_destroy(filedata->cache);
 	}
+    } else {
+	retstat = close(filedata->fd);
     }
-    retstat = close(filedata->fd);
     free(filedata);
 
     return retstat;

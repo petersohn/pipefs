@@ -61,7 +61,10 @@ void ReadLoop::remove(int fd)
 	auto it = caches.find(fd);
 	if (it != caches.end()) {
 		auto& data = it->second;
-		data.stream.cancel();
+		boost::system::error_code errorCode;
+		data.stream.cancel(errorCode);
+		// ignore the error
+
 		caches.erase(it);
 	}
 }
@@ -80,7 +83,11 @@ void ReadLoop::readFinished(CacheData& data,
 	}
 
 	data.cache.finish();
-	data.stream.close();
+	if (data.stream.is_open()) {
+		boost::system::error_code errorCode;
+		data.stream.close(errorCode);
+		// ignore the error
+	}
 }
 
 
