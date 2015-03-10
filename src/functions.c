@@ -456,9 +456,15 @@ int pipefs_open(const char *path, struct fuse_file_info *fi)
 	fi->direct_io = 1;
 
 	if (data->seekable) {
+	    int new_fd = dup(fd);
+	    if (new_fd < 0) {
+		free(filedata);
+		return pipefs_error("pipefs_open open");
+	    }
+
 	    fi->nonseekable = 0;
 	    filedata->cache = pipefs_cache_create();
-	    pipefs_readloop_add(data->readloop, fd, filedata->cache);
+	    pipefs_readloop_add(data->readloop, new_fd, filedata->cache);
 	} else {
 	    fi->nonseekable = 1;
 	}
@@ -467,6 +473,7 @@ int pipefs_open(const char *path, struct fuse_file_info *fi)
 	filedata->fd = fd;
 	filedata->original_fd = -1;
     }
+
     if (fd < 0) {
 	free(filedata);
 	return pipefs_error("pipefs_open open");

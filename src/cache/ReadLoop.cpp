@@ -80,6 +80,7 @@ void ReadLoop::readFinished(CacheData& data,
 	}
 
 	data.cache.finish();
+	data.stream.close();
 }
 
 
