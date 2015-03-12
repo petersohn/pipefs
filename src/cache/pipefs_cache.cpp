@@ -16,9 +16,6 @@ extern "C" {
 	throw; \
 }
 
-struct pipefs_cache {
-	int dummy;
-};
 
 struct pipefs_cache* pipefs_cache_create()
 {
@@ -36,9 +33,6 @@ int pipefs_cache_read(const struct pipefs_cache* cache, void* buf,
 	TRY(return reinterpret_cast<const pipefs::Cache*>(cache)->read(buf, length, position));
 }
 
-struct pipefs_caches {
-	int dummy;
-};
 
 struct pipefs_caches* pipefs_caches_create()
 {
@@ -72,9 +66,6 @@ void pipefs_caches_cleanup(pipefs_caches* caches, size_t target_size)
 	TRY(reinterpret_cast<pipefs::Caches*>(caches)->cleanup(target_size));
 }
 
-struct pipefs_readloop {
-	int dummy;
-};
 
 struct pipefs_readloop* pipefs_readloop_create()
 {
