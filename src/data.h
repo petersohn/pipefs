@@ -19,6 +19,7 @@ struct pipefs_data {
     int cache;
     size_t cache_limit;
 
+    struct pipefs_io_thread* io_thread;
     struct pipefs_readloop* readloop;
 };
 

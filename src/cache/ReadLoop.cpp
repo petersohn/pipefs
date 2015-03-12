@@ -6,32 +6,10 @@
 
 namespace pipefs {
 
-void ReadLoop::start()
+void ReadLoop::cancel()
 {
-	if (workingThread) {
-		stop();
-	}
-
-	log_msg("Starting working thread.\n");
-
-	work = std::make_unique<boost::asio::io_service::work>(ioService);
-	workingThread = std::make_unique<std::thread>(
-			[this]() { ioService.run(); });
-}
-
-void ReadLoop::stop()
-{
-	if (workingThread) {
-		log_msg("Stopping working thread.\n");
-		work.reset();
-
-		for (auto& value: caches) {
-			value.second.stream.cancel();
-		}
-
-		workingThread->join();
-		workingThread.reset();
-		log_msg("Working thread stopped.\n");
+	for (auto& value: caches) {
+		value.second.stream.cancel();
 	}
 }
 

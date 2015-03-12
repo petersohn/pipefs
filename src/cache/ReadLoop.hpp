@@ -4,8 +4,6 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/posix/stream_descriptor.hpp>
 #include <map>
-#include <memory>
-#include <thread>
 
 namespace pipefs {
 
@@ -13,16 +11,15 @@ class Cache;
 
 class ReadLoop {
 public:
-	void start();
-	void stop();
+	ReadLoop(boost::asio::io_service& ioService):
+		ioService(ioService) {}
+	void cancel();
 	void add(int fd, Cache& cache);
 	void remove(int fd);
 private:
 	constexpr static std::size_t bufferSize = 65536;
 
-	boost::asio::io_service ioService;
-	std::unique_ptr<std::thread> workingThread;
-	std::unique_ptr<boost::asio::io_service::work> work;
+	boost::asio::io_service& ioService;
 
 	struct CacheData {
 		Cache& cache;

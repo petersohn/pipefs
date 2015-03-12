@@ -4,6 +4,7 @@
 #include "Cache.hpp"
 #include "Caches.hpp"
 #include "ReadLoop.hpp"
+#include "IOThread.hpp"
 
 #include <boost/exception/all.hpp>
 #include <memory>
@@ -66,10 +67,31 @@ void pipefs_caches_cleanup(pipefs_caches* caches, size_t target_size)
 	TRY(reinterpret_cast<pipefs::Caches*>(caches)->cleanup(target_size));
 }
 
-
-struct pipefs_readloop* pipefs_readloop_create()
+struct pipefs_io_thread* pipefs_io_thread_create()
 {
-	TRY(return reinterpret_cast<pipefs_readloop*>(new pipefs::ReadLoop{}));
+	TRY(return reinterpret_cast<pipefs_io_thread*>(new pipefs::IOThread{}));
+}
+
+void pipefs_io_thread_destroy(struct pipefs_io_thread* io_thread)
+{
+	TRY(delete reinterpret_cast<pipefs::IOThread*>(io_thread));
+}
+
+void pipefs_io_thread_start(struct pipefs_io_thread* io_thread)
+{
+	TRY(reinterpret_cast<pipefs::IOThread*>(io_thread)->start());
+}
+
+void pipefs_io_thread_stop(struct pipefs_io_thread* io_thread)
+{
+	TRY(reinterpret_cast<pipefs::IOThread*>(io_thread)->stop());
+}
+
+
+struct pipefs_readloop* pipefs_readloop_create(struct pipefs_io_thread* io_thread)
+{
+	TRY(return reinterpret_cast<pipefs_readloop*>(new pipefs::ReadLoop{
+			reinterpret_cast<pipefs::IOThread*>(io_thread)->getIoService()}));
 }
 
 void pipefs_readloop_destroy(struct pipefs_readloop* readloop)
@@ -77,15 +99,9 @@ void pipefs_readloop_destroy(struct pipefs_readloop* readloop)
 	TRY(delete reinterpret_cast<pipefs::ReadLoop*>(readloop));
 }
 
-
-void pipefs_readloop_start(struct pipefs_readloop* readloop)
+void pipefs_readloop_cancel(struct pipefs_readloop* readloop)
 {
-	TRY(reinterpret_cast<pipefs::ReadLoop*>(readloop)->start());
-}
-
-void pipefs_readloop_stop(struct pipefs_readloop* readloop)
-{
-	TRY(reinterpret_cast<pipefs::ReadLoop*>(readloop)->stop());
+	TRY(reinterpret_cast<pipefs::ReadLoop*>(readloop)->cancel());
 }
 
 void pipefs_readloop_add(struct pipefs_readloop* readloop, int fd,

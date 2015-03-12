@@ -844,8 +844,9 @@ void *pipefs_init(struct fuse_conn_info *conn)
     (void)conn;
 
     struct pipefs_data* data = GET_DATA;
-    data->readloop = pipefs_readloop_create();
-    pipefs_readloop_start(data->readloop);
+    data->io_thread = pipefs_io_thread_create();
+    pipefs_io_thread_start(data->io_thread);
+    data->readloop = pipefs_readloop_create(data->io_thread);
 
     return data;
 }
@@ -861,8 +862,10 @@ void pipefs_destroy(void *userdata)
 {
     struct pipefs_data* data = (struct pipefs_data*)userdata;
     log_msg("\nbb_destroy(userdata=0x%08x)\n", userdata);
-    pipefs_readloop_stop(data->readloop);
+    pipefs_readloop_cancel(data->readloop);
+    pipefs_io_thread_stop(data->io_thread);
     pipefs_readloop_destroy(data->readloop);
+    pipefs_io_thread_destroy(data->io_thread);
 }
 
 /**

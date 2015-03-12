@@ -23,12 +23,18 @@ int pipefs_caches_get(struct pipefs_caches* caches, const char* key,
 void pipefs_caches_release(struct pipefs_caches* caches, const char* key);
 void pipefs_caches_cleanup(struct pipefs_caches* caches, size_t target_size);
 
+struct pipefs_io_thread;
+
+struct pipefs_io_thread* pipefs_io_thread_create();
+void pipefs_io_thread_destroy(struct pipefs_io_thread* io_thread);
+void pipefs_io_thread_start(struct pipefs_io_thread* io_thread);
+void pipefs_io_thread_stop(struct pipefs_io_thread* io_thread);
+
 struct pipefs_readloop;
 
-struct pipefs_readloop* pipefs_readloop_create();
+struct pipefs_readloop* pipefs_readloop_create(struct pipefs_io_thread* io_thread);
 void pipefs_readloop_destroy(struct pipefs_readloop* readloop);
-void pipefs_readloop_start(struct pipefs_readloop* readloop);
-void pipefs_readloop_stop(struct pipefs_readloop* readloop);
+void pipefs_readloop_cancel(struct pipefs_readloop* readloop);
 void pipefs_readloop_add(struct pipefs_readloop* readloop, int fd,
 		struct pipefs_cache* cache);
 void pipefs_readloop_remove(struct pipefs_readloop* readloop, int fd);
