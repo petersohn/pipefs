@@ -66,6 +66,7 @@ void ReadLoop::readFinished(CacheData& data,
 		data.stream.close(errorCode);
 		// ignore the error
 	}
+	remove(data.stream.native_handle());
 }
 
 
