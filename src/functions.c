@@ -77,6 +77,16 @@ static void correct_stat_info(struct stat* statbuf)
     statbuf->st_blocks = 0;
 }
 
+static void create_cache(const char* key, const char* translated_path, int flags,
+	struct pipefs_filedata* filedata)
+{
+    struct pipefs_data* data = GET_DATA;
+    if (pipefs_caches_get(data->caches, key, &filedata->cache)) {
+	int fd = spawn_command(data->command, translated_path, flags, filedata);
+	pipefs_readloop_add(data->readloop, fd, filedata->cache);
+    }
+}
+
 /** Get file attributes.
  *
  * Similar to stat().  The 'st_dev' and 'st_blksize' fields are
@@ -445,22 +455,28 @@ int pipefs_open(const char *path, struct fuse_file_info *fi)
 
     struct pipefs_filedata* filedata = malloc(sizeof(struct pipefs_filedata));
     memset(filedata, 0, sizeof(struct pipefs_filedata));
-    int fd;
+    int fd = 0;
     if (translated_path) {
 	if (fi->flags & (O_WRONLY | O_RDWR | O_CREAT)) {
 	    log_msg("    error: flags=%04o\n", fi->flags);
 	    return -EINVAL;
 	}
 
-	fd = spawn_command(data->command, translated_path, fi->flags, filedata);
 	fi->direct_io = 1;
 
-	if (data->seekable) {
+	if (data->cache) {
+	    create_cache(path, translated_path, fi->flags, filedata);
 	    fi->nonseekable = 0;
-	    filedata->cache = pipefs_cache_create();
-	    pipefs_readloop_add(data->readloop, fd, filedata->cache);
 	} else {
-	    fi->nonseekable = 1;
+	    fd = spawn_command(data->command, translated_path, fi->flags, filedata);
+
+	    if (data->seekable) {
+		fi->nonseekable = 0;
+		filedata->cache = pipefs_cache_create();
+		pipefs_readloop_add(data->readloop, fd, filedata->cache);
+	    } else {
+		fi->nonseekable = 1;
+	    }
 	}
     } else {
 	fd = open(fpath, fi->flags);
@@ -651,9 +667,13 @@ int pipefs_release(const char *path, struct fuse_file_info *fi)
     struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
     if (filedata->original_fd >= 0) {
 	close(filedata->original_fd);
+	struct pipefs_data* data = GET_DATA;
 
-	if (filedata->cache) {
-	    pipefs_readloop_remove(GET_DATA->readloop, filedata->fd);
+	if (data->caches) {
+	    pipefs_caches_release(data->caches, path);
+	    pipefs_caches_cleanup(data->caches, data->cache_limit);
+	} else if (filedata->cache) {
+	    pipefs_readloop_remove(data->readloop, filedata->fd);
 	    pipefs_cache_destroy(filedata->cache);
 	}
     } else {
@@ -679,7 +699,10 @@ int pipefs_fsync(const char *path, int datasync, struct fuse_file_info *fi)
 	    path, datasync, fi, pthread_self());
 
     struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
-    retstat = fsync(filedata->fd);
+
+    if (!filedata->cache) {
+	retstat = fsync(filedata->fd);
+    }
 
     if (retstat < 0)
 	pipefs_error("pipefs_fsync fsync");
@@ -844,6 +867,10 @@ void *pipefs_init(struct fuse_conn_info *conn)
     data->signal_handler = pipefs_signal_handler_create(data->io_thread);
     pipefs_signal_handler_start(data->signal_handler);
 
+    if (data->cache) {
+	data->caches = pipefs_caches_create();
+    }
+
     return data;
 }
 
@@ -858,6 +885,10 @@ void pipefs_destroy(void *userdata)
 {
     struct pipefs_data* data = (struct pipefs_data*)userdata;
     log_msg("\nbb_destroy(userdata=0x%08x)\n", userdata);
+
+    if (data->caches) {
+	pipefs_caches_destroy(data->caches);
+    }
 
     pipefs_readloop_cancel(data->readloop);
     pipefs_signal_handler_cancel(data->signal_handler);
