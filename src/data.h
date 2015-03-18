@@ -21,6 +21,7 @@ struct pipefs_data {
 
     struct pipefs_io_thread* io_thread;
     struct pipefs_readloop* readloop;
+    struct pipefs_signal_handler* signal_handler;
 };
 
 struct pipefs_filedata {

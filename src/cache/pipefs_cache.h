@@ -39,6 +39,13 @@ void pipefs_readloop_add(struct pipefs_readloop* readloop, int fd,
 		struct pipefs_cache* cache);
 void pipefs_readloop_remove(struct pipefs_readloop* readloop, int fd);
 
+struct pipefs_signal_handler;
+
+struct pipefs_signal_handler* pipefs_signal_handler_create(struct pipefs_io_thread* io_thread);
+void pipefs_signal_handler_destroy(struct pipefs_signal_handler* signal_handler);
+void pipefs_signal_handler_start(struct pipefs_signal_handler* signal_handler);
+void pipefs_signal_handler_cancel(struct pipefs_signal_handler* signal_handler);
+
 #ifdef __cplusplus
 }
 #endif

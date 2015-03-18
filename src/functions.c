@@ -651,13 +651,6 @@ int pipefs_release(const char *path, struct fuse_file_info *fi)
     struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
     if (filedata->original_fd >= 0) {
 	close(filedata->original_fd);
-	log_msg("    waiting for child to finish...\n");
-	int result;
-	do {
-	    result = waitpid(filedata->pid, NULL, 0);
-	    log_msg("        result = %s\n", strerror(errno));
-	} while (result == -1 && errno == EINTR);
-	log_msg("    Children finished.\n");
 
 	if (filedata->cache) {
 	    pipefs_readloop_remove(GET_DATA->readloop, filedata->fd);
@@ -846,7 +839,10 @@ void *pipefs_init(struct fuse_conn_info *conn)
     struct pipefs_data* data = GET_DATA;
     data->io_thread = pipefs_io_thread_create();
     pipefs_io_thread_start(data->io_thread);
+
     data->readloop = pipefs_readloop_create(data->io_thread);
+    data->signal_handler = pipefs_signal_handler_create(data->io_thread);
+    pipefs_signal_handler_start(data->signal_handler);
 
     return data;
 }
@@ -862,9 +858,12 @@ void pipefs_destroy(void *userdata)
 {
     struct pipefs_data* data = (struct pipefs_data*)userdata;
     log_msg("\nbb_destroy(userdata=0x%08x)\n", userdata);
+
     pipefs_readloop_cancel(data->readloop);
+    pipefs_signal_handler_cancel(data->signal_handler);
     pipefs_io_thread_stop(data->io_thread);
     pipefs_readloop_destroy(data->readloop);
+    pipefs_signal_handler_destroy(data->signal_handler);
     pipefs_io_thread_destroy(data->io_thread);
 }
 

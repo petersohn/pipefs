@@ -4,6 +4,7 @@
 #include "Cache.hpp"
 #include "Caches.hpp"
 #include "ReadLoop.hpp"
+#include "SignalHandler.hpp"
 #include "IOThread.hpp"
 
 #include <boost/exception/all.hpp>
@@ -113,6 +114,28 @@ void pipefs_readloop_add(struct pipefs_readloop* readloop, int fd,
 void pipefs_readloop_remove(struct pipefs_readloop* readloop, int fd)
 {
 	TRY(reinterpret_cast<pipefs::ReadLoop*>(readloop)->remove(fd));
+}
+
+
+struct pipefs_signal_handler* pipefs_signal_handler_create(struct pipefs_io_thread* io_thread)
+{
+	TRY(return reinterpret_cast<pipefs_signal_handler*>(new pipefs::SignalHandler{
+			reinterpret_cast<pipefs::IOThread*>(io_thread)->getIoService()}));
+}
+
+void pipefs_signal_handler_destroy(struct pipefs_signal_handler* signal_handler)
+{
+	TRY(delete reinterpret_cast<pipefs::SignalHandler*>(signal_handler));
+}
+
+void pipefs_signal_handler_cancel(struct pipefs_signal_handler* signal_handler)
+{
+	TRY(reinterpret_cast<pipefs::SignalHandler*>(signal_handler)->cancel());
+}
+
+void pipefs_signal_handler_start(struct pipefs_signal_handler* signal_handler)
+{
+	TRY(reinterpret_cast<pipefs::SignalHandler*>(signal_handler)->start());
 }
 
 }
