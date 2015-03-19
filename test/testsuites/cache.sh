@@ -20,6 +20,7 @@ function get_test_cases()
 	get_common_test_cases
 	echo "testcases/can_seek_in_translated_files.sh"
 	echo "testcases/command_is_only_executed_once.sh"
+	echo "testcases/command_is_executed_more_times_if_file_is_large.sh"
 }
 
 
