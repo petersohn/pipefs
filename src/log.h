@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-FILE* log_open(const char* filename);
+void log_open(const char* filename);
 void log_msg(const char *format, ...);
 
 #ifdef __cplusplus

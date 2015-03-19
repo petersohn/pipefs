@@ -90,7 +90,7 @@ char** parse_arguments(int argc, char* argv[], struct pipefs_data* data,
 	    data->seekable = 1;
             break;
         case 'l':
-            data->logfile = log_open(optarg);
+            log_open(optarg);
             break;
         case 'r':
             data->rootdir = optarg;

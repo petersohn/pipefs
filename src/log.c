@@ -12,31 +12,30 @@
 
 #include "log.h"
 
-FILE* log_open(const char* filename)
-{
-    FILE* logfile = NULL;
+static FILE* log_file = NULL;
 
-    logfile = fopen(filename, "w");
-    if (logfile == NULL) {
+void log_open(const char* filename)
+{
+    log_file = NULL;
+
+    log_file = fopen(filename, "w");
+    if (log_file == NULL) {
         perror("logfile");
-        return NULL;
+        exit(1);
     }
 
     // set logfile to line buffering
-    setvbuf(logfile, NULL, _IOLBF, 0);
-
-    return logfile;
+    setvbuf(log_file, NULL, _IOLBF, 0);
 }
 
 void log_msg(const char* format, ...)
 {
-    struct pipefs_data* data = GET_DATA;
-    if (!data->logfile) {
+    if (!log_file) {
         return;
     }
 
     va_list ap;
     va_start(ap, format);
 
-    vfprintf(data->logfile, format, ap);
+    vfprintf(log_file, format, ap);
 }
