@@ -1,5 +1,6 @@
 #include "Cache.hpp"
 #include <cstring>
+#include <log.h>
 
 namespace pipefs {
 
@@ -15,9 +16,13 @@ void Cache::write(const void* buf, std::size_t length)
 int Cache::read(void* buf, std::size_t length, std::size_t position) const
 {
 	std::unique_lock<std::mutex> lock{mutex};
+	log_msg("Cache::read(this=%p, position=%lu, length=%lu); size = %lu\n",
+			this, position, length, data.size());
 
 	while (!finished && position >= data.size()) {
+		//log_msg("  blocking...");
 		readWaiter.wait(lock);
+		//log_msg("  blocking finished");
 	}
 
 	if (finished && position >= data.size()) {
@@ -26,11 +31,13 @@ int Cache::read(void* buf, std::size_t length, std::size_t position) const
 
 	std::size_t result = std::min(length, data.size() - position);
 	std::memmove(buf, &data[position], result);
+	log_msg("  Result = %d\n", result);
 	return result;
 }
 
 void Cache::finish()
 {
+	log_msg("Cache::finish(this=%p)\n", this);
 	std::unique_lock<std::mutex> lock{mutex};
 	finished = true;
 	readWaiter.notify_all();

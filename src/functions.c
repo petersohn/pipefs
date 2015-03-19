@@ -82,8 +82,11 @@ static void create_cache(const char* key, const char* translated_path, int flags
 {
     struct pipefs_data* data = GET_DATA;
     if (pipefs_caches_get(data->caches, key, &filedata->cache)) {
+	log_msg("  New cache.\n");
 	int fd = spawn_command(data->command, translated_path, flags, filedata);
 	pipefs_readloop_add(data->readloop, fd, filedata->cache);
+    } else {
+	log_msg("  No new cache.\n");
     }
 }
 
