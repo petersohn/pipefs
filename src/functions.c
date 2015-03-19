@@ -95,7 +95,7 @@ static void create_cache(const char* key, const char* translated_path, int flags
  */
 int pipefs_getattr(const char *path, struct stat *statbuf)
 {
-    log_msg("\nbb_getattr(path=\"%s\", statbuf=0x%08x, tid=0x%08x)\n",
+    log_msg(" \nbb_getattr(path=\"%s\", statbuf=0x%08x, tid=0x%08x)\n",
 	  path, statbuf, pthread_self());
 
     char fpath[PATH_MAX];
@@ -170,7 +170,7 @@ int pipefs_mknod(const char *path, mode_t mode, dev_t dev)
     int retstat = 0;
     char fpath[PATH_MAX];
 
-    log_msg("\nbb_mknod(path=\"%s\", mode=0%3o, dev=%lld, tid=0x%08x)\n",
+    log_msg(" \nbb_mknod(path=\"%s\", mode=0%3o, dev=%lld, tid=0x%08x)\n",
 	  path, mode, dev, pthread_self());
     pipefs_fullpath(fpath, path);
 
@@ -208,7 +208,7 @@ int pipefs_mkdir(const char *path, mode_t mode)
     int retstat = 0;
     char fpath[PATH_MAX];
 
-    log_msg("\nbb_mkdir(path=\"%s\", mode=0%3o, tid=0x%08x)\n",
+    log_msg(" \nbb_mkdir(path=\"%s\", mode=0%3o, tid=0x%08x)\n",
 	    path, mode, pthread_self());
     pipefs_fullpath(fpath, path);
 
@@ -278,7 +278,7 @@ int pipefs_symlink(const char *path, const char *link)
     int retstat = 0;
     char flink[PATH_MAX];
 
-    log_msg("\nbb_symlink(path=\"%s\", link=\"%s\", tid=0x%08x)\n",
+    log_msg(" \nbb_symlink(path=\"%s\", link=\"%s\", tid=0x%08x)\n",
 	    path, link, pthread_self());
     pipefs_fullpath(flink, link);
     CHECK_SOURCE_PATH(flink);
@@ -299,7 +299,7 @@ int pipefs_rename(const char *path, const char *newpath)
     char fpath[PATH_MAX];
     char fnewpath[PATH_MAX];
 
-    log_msg("\nbb_rename(fpath=\"%s\", newpath=\"%s\", tid=0x%08x)\n",
+    log_msg(" \nbb_rename(fpath=\"%s\", newpath=\"%s\", tid=0x%08x)\n",
 	    path, newpath, pthread_self());
     pipefs_fullpath(fpath, path);
     CHECK_SOURCE_PATH(fpath);
@@ -321,7 +321,7 @@ int pipefs_link(const char *path, const char *newpath)
     int retstat = 0;
     char fpath[PATH_MAX], fnewpath[PATH_MAX];
 
-    log_msg("\nbb_link(path=\"%s\", newpath=\"%s\", tid=0x%08x)\n",
+    log_msg(" \nbb_link(path=\"%s\", newpath=\"%s\", tid=0x%08x)\n",
 	    path, newpath, pthread_self());
     pipefs_fullpath(fpath, path);
     CHECK_SOURCE_PATH(fpath);
@@ -343,7 +343,7 @@ int pipefs_chmod(const char *path, mode_t mode)
     int retstat = 0;
     char fpath[PATH_MAX];
 
-    log_msg("\nbb_chmod(fpath=\"%s\", mode=0%03o, tid=0x%08x)\n",
+    log_msg(" \nbb_chmod(fpath=\"%s\", mode=0%03o, tid=0x%08x)\n",
 	    path, mode, pthread_self());
     pipefs_fullpath(fpath, path);
     CHECK_SOURCE_PATH(fpath);
@@ -370,7 +370,7 @@ int pipefs_chown(const char *path, uid_t uid, gid_t gid)
     int retstat = 0;
     char fpath[PATH_MAX];
 
-    log_msg("\nbb_chown(path=\"%s\", uid=%d, gid=%d, tid=0x%08x)\n",
+    log_msg(" \nbb_chown(path=\"%s\", uid=%d, gid=%d, tid=0x%08x)\n",
 	    path, uid, gid, pthread_self());
     pipefs_fullpath(fpath, path);
     CHECK_SOURCE_PATH(fpath);
@@ -393,7 +393,7 @@ int pipefs_truncate(const char *path, off_t newsize)
     int retstat = 0;
     char fpath[PATH_MAX];
 
-    log_msg("\nbb_truncate(path=\"%s\", newsize=%lld, tid=0x%08x)\n",
+    log_msg(" \nbb_truncate(path=\"%s\", newsize=%lld, tid=0x%08x)\n",
 	    path, newsize, pthread_self());
     pipefs_fullpath(fpath, path);
     CHECK_SOURCE_PATH(fpath);
@@ -413,7 +413,7 @@ int pipefs_utime(const char *path, struct utimbuf *ubuf)
     int retstat = 0;
     char fpath[PATH_MAX];
 
-    log_msg("\nbb_utime(path=\"%s\", ubuf=0x%08x, tid=0x%08x)\n",
+    log_msg(" \nbb_utime(path=\"%s\", ubuf=0x%08x, tid=0x%08x)\n",
 	    path, ubuf, pthread_self());
     CHECK_SOURCE_PATH(fpath);
     pipefs_fullpath(fpath, path);
@@ -444,7 +444,7 @@ int pipefs_open(const char *path, struct fuse_file_info *fi)
 {
     char fpath[PATH_MAX];
 
-    log_msg("\nbb_open(path\"%s\", fi=0x%08x, tid=0x%08x)\n",
+    log_msg(" \nbb_open(path\"%s\", fi=0x%08x, tid=0x%08x)\n",
 	    path, fi, pthread_self());
     CHECK_SOURCE_PATH(fpath);
     pipefs_fullpath(fpath, path);
@@ -516,32 +516,32 @@ int pipefs_read(const char *path, char *buf, size_t size, off_t offset,
 {
     int retstat = 0;
 
-    log_msg("\nbb_read(path=\"%s\", buf=0x%08x, size=%d, offset=%lld, fi=0x%08x, tid=0x%08x)\n",
+    log_msg(" \nbb_read(path=\"%s\", buf=0x%08x, size=%d, offset=%lld, fi=0x%08x, tid=0x%08x)\n",
 	    path, buf, size, offset, fi, pthread_self());
 
     struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
     log_msg("    filedata=%08x -- fd=%d, original_fd=%d, offset=%d\n",
 	    filedata, filedata->fd, filedata->original_fd, filedata->current_offset);
     if (filedata->original_fd < 0) {
-	log_msg("    pread()");
+	log_msg("    pread()\n");
 	retstat = pread(filedata->fd, buf, size, offset);
     } else {
 	if (filedata->cache) {
-	    log_msg("    cache_read()");
+	    log_msg("    cache_read()\n");
 	    retstat = pipefs_cache_read(filedata->cache, buf, size, offset);
 	} else {
 	    if (offset != filedata->current_offset) {
 		log_msg("    bad offset, expected=%d\n", filedata->current_offset);
 		return -ESPIPE;
 	    }
-	    log_msg("    read()");
+	    log_msg("    read()\n");
 	    retstat = read(filedata->fd, buf, size);
 	    if (retstat > 0) {
 		filedata->current_offset += retstat;
 	    }
 	}
     }
-    log_msg(" = %d\n", retstat);
+    log_msg("    read result = %d\n", retstat);
     if (retstat < 0)
 	retstat = pipefs_error("pipefs_read read");
 
@@ -563,7 +563,7 @@ int pipefs_write(const char *path, const char *buf, size_t size, off_t offset,
 {
     int retstat = 0;
 
-    log_msg("\nbb_write(path=\"%s\", buf=0x%08x, size=%d, offset=%lld, fi=0x%08x, tid=0x%08x)\n",
+    log_msg(" \nbb_write(path=\"%s\", buf=0x%08x, size=%d, offset=%lld, fi=0x%08x, tid=0x%08x)\n",
 	    path, buf, size, offset, fi, pthread_self()
 	    );
 
@@ -593,7 +593,7 @@ int pipefs_statfs(const char *path, struct statvfs *statv)
     int retstat = 0;
     char fpath[PATH_MAX];
 
-    log_msg("\nbb_statfs(path=\"%s\", statv=0x%08x, tid=0x%08x)\n",
+    log_msg(" \nbb_statfs(path=\"%s\", statv=0x%08x, tid=0x%08x)\n",
 	    path, statv, pthread_self());
     pipefs_fullpath(fpath, path);
     CHECK_SOURCE_PATH(fpath);
@@ -637,7 +637,7 @@ int pipefs_flush(const char *path, struct fuse_file_info *fi)
 {
     int retstat = 0;
 
-    log_msg("\nbb_flush(path=\"%s\", fi=0x%08x, tid=0x%08x)\n",
+    log_msg(" \nbb_flush(path=\"%s\", fi=0x%08x, tid=0x%08x)\n",
 	    path, fi, pthread_self());
 
     return retstat;
@@ -661,7 +661,7 @@ int pipefs_release(const char *path, struct fuse_file_info *fi)
 {
     int retstat = 0;
 
-    log_msg("\nbb_release(path=\"%s\", fi=0x%08x, tid=0x%08x)\n",
+    log_msg(" \nbb_release(path=\"%s\", fi=0x%08x, tid=0x%08x)\n",
 	  path, fi, pthread_self());
 
     struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
@@ -695,7 +695,7 @@ int pipefs_fsync(const char *path, int datasync, struct fuse_file_info *fi)
 {
     int retstat = 0;
 
-    log_msg("\nbb_fsync(path=\"%s\", datasync=%d, fi=0x%08x, tid=0x%08x)\n",
+    log_msg(" \nbb_fsync(path=\"%s\", datasync=%d, fi=0x%08x, tid=0x%08x)\n",
 	    path, datasync, fi, pthread_self());
 
     struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
@@ -723,7 +723,7 @@ int pipefs_opendir(const char *path, struct fuse_file_info *fi)
     int retstat = 0;
     char fpath[PATH_MAX];
 
-    log_msg("\nbb_opendir(path=\"%s\", fi=0x%08x, tid=0x%08x)\n",
+    log_msg(" \nbb_opendir(path=\"%s\", fi=0x%08x, tid=0x%08x)\n",
 	  path, fi, pthread_self());
     pipefs_fullpath(fpath, path);
 
@@ -764,7 +764,7 @@ int pipefs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     DIR *dp;
     struct dirent *de;
 
-    log_msg("\nbb_readdir(path=\"%s\", buf=0x%08x, filler=0x%08x, offset=%lld, fi=0x%08x, tid=0x%08x)\n",
+    log_msg(" \nbb_readdir(path=\"%s\", buf=0x%08x, filler=0x%08x, offset=%lld, fi=0x%08x, tid=0x%08x)\n",
 	    path, buf, filler, offset, fi, pthread_self());
     // once again, no need for fullpath -- but note that I need to cast fi->fh
     dp = (DIR *) (uintptr_t) fi->fh;
@@ -810,7 +810,7 @@ int pipefs_releasedir(const char *path, struct fuse_file_info *fi)
 {
     int retstat = 0;
 
-    log_msg("\nbb_releasedir(path=\"%s\", fi=0x%08x, tid=0x%08x)\n",
+    log_msg(" \nbb_releasedir(path=\"%s\", fi=0x%08x, tid=0x%08x)\n",
 	    path, fi, pthread_self());
 
     closedir((DIR *) (uintptr_t) fi->fh);
@@ -831,7 +831,7 @@ int pipefs_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi)
 {
     int retstat = 0;
 
-    log_msg("\nbb_fsyncdir(path=\"%s\", datasync=%d, fi=0x%08x, tid=0x%08x)\n",
+    log_msg(" \nbb_fsyncdir(path=\"%s\", datasync=%d, fi=0x%08x, tid=0x%08x)\n",
 	    path, datasync, fi, pthread_self());
 
     return retstat;
@@ -856,7 +856,7 @@ int pipefs_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi)
 // FUSE).
 void *pipefs_init(struct fuse_conn_info *conn)
 {
-    log_msg("\nbb_init()\n");
+    log_msg(" \nbb_init()\n");
     (void)conn;
 
     struct pipefs_data* data = GET_DATA;
@@ -884,7 +884,7 @@ void *pipefs_init(struct fuse_conn_info *conn)
 void pipefs_destroy(void *userdata)
 {
     struct pipefs_data* data = (struct pipefs_data*)userdata;
-    log_msg("\nbb_destroy(userdata=0x%08x)\n", userdata);
+    log_msg(" \nbb_destroy(userdata=0x%08x)\n", userdata);
 
     if (data->caches) {
 	pipefs_caches_destroy(data->caches);
@@ -914,7 +914,7 @@ int pipefs_access(const char *path, int mask)
     int retstat = 0;
     char fpath[PATH_MAX];
 
-    log_msg("\nbb_access(path=\"%s\", mask=0%o, tid=0x%08x)\n",
+    log_msg(" \nbb_access(path=\"%s\", mask=0%o, tid=0x%08x)\n",
 	    path, mask, pthread_self());
     pipefs_fullpath(fpath, path);
 
@@ -949,7 +949,7 @@ int pipefs_access(const char *path, int mask)
  */
 int pipefs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
-    log_msg("\nbb_create(path=\"%s\", mode=0%03o, fi=0x%08x, tid=0x%08x)\n",
+    log_msg(" \nbb_create(path=\"%s\", mode=0%03o, fi=0x%08x, tid=0x%08x)\n",
 	    path, mode, fi, pthread_self());
 
     char fpath[PATH_MAX];
@@ -988,7 +988,7 @@ int pipefs_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi)
 {
     int retstat = 0;
 
-    log_msg("\nbb_ftruncate(path=\"%s\", offset=%lld, fi=0x%08x, tid=0x%08x)\n",
+    log_msg(" \nbb_ftruncate(path=\"%s\", offset=%lld, fi=0x%08x, tid=0x%08x)\n",
 	    path, offset, fi, pthread_self());
 
     struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
@@ -1016,7 +1016,7 @@ int pipefs_fgetattr(const char *path, struct stat *statbuf,
 {
     int retstat = 0;
 
-    log_msg("\nbb_fgetattr(path=\"%s\", statbuf=0x%08x, fi=0x%08x, tid=0x%08x)\n",
+    log_msg(" \nbb_fgetattr(path=\"%s\", statbuf=0x%08x, fi=0x%08x, tid=0x%08x)\n",
 	    path, statbuf, fi, pthread_self());
 
     // On FreeBSD, trying to do anything with the mountpoint ends up

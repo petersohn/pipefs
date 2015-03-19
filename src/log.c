@@ -9,10 +9,17 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <pthread.h>
+#include <time.h>
+#include <string.h>
 
 #include "log.h"
 
 static FILE* log_file = NULL;
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+#define TIME_BUFFER_SIZE 20
+#define MAX_LOG_SIZE 10000
 
 void log_open(const char* filename)
 {
@@ -23,9 +30,6 @@ void log_open(const char* filename)
         perror("logfile");
         exit(1);
     }
-
-    // set logfile to line buffering
-    setvbuf(log_file, NULL, _IOLBF, 0);
 }
 
 void log_msg(const char* format, ...)
@@ -34,8 +38,34 @@ void log_msg(const char* format, ...)
         return;
     }
 
+    char buffer[MAX_LOG_SIZE];
     va_list ap;
     va_start(ap, format);
+    vsnprintf(buffer, MAX_LOG_SIZE, format, ap);
 
-    vfprintf(log_file, format, ap);
+    char time_buffer[TIME_BUFFER_SIZE];
+    time_t now;
+    time(&now);
+    strftime(time_buffer, TIME_BUFFER_SIZE, "%Y-%m-%d %H:%M:%S", gmtime(&now));
+
+    pthread_t self = pthread_self();
+
+    if (pthread_mutex_lock(&mutex)) {
+        exit(2);
+    }
+
+    char delimiter[2] = "\n";
+    char* save_ptr = NULL;
+    char* token = strtok_r(buffer, delimiter, &save_ptr);
+
+    while (token) {
+        fprintf(log_file, "%s [0x%lx] %s\n", time_buffer, self, token);
+        token = strtok_r(NULL, delimiter, &save_ptr);
+    }
+
+    fflush(log_file);
+
+    if (pthread_mutex_unlock(&mutex)) {
+        exit(2);
+    }
 }
