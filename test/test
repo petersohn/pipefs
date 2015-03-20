@@ -11,7 +11,11 @@ function run_test()
 	pushd "$tmpdir" >/dev/null
     echo "  Running test $test_name"
     (
-        source "$test_dir/$test_name"
+        if ! source "$test_dir/$test_name"; then
+	    echo "    Test case not found."
+	    exit 1
+	fi
+
         set +e
         set -x
         (
@@ -64,8 +68,14 @@ source "$test_file"
 fail_num=0
 run_num=0
 while read testsuite; do
-    source "$test_dir/$testsuite"
     echo "Running test suite $(basename $testsuite)"
+    if ! source "$test_dir/$testsuite"; then
+	echo "Test suite not found."
+	(( ++fail_num ))
+        (( ++run_num ))
+	continue
+    fi
+
     while read test; do
         if ! run_test "$test"; then
             (( ++fail_num ))
