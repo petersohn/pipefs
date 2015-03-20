@@ -674,7 +674,9 @@ int pipefs_release(const char *path, struct fuse_file_info *fi)
 
 	if (data->caches) {
 	    pipefs_caches_release(data->caches, path);
-	    pipefs_caches_cleanup(data->caches, data->cache_limit);
+	    if (data->cache_limit != 0) {
+		pipefs_caches_cleanup(data->caches, data->cache_limit);
+	    }
 	} else if (filedata->cache) {
 	    pipefs_readloop_remove(data->readloop, filedata->fd);
 	    pipefs_cache_destroy(filedata->cache);
