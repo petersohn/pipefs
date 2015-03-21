@@ -10,9 +10,7 @@
 
 namespace pipefs {
 
-class Cache;
-
-template <typename StreamDescriptor, typename Logger>
+template <typename StreamDescriptor, typename Cache, typename Logger>
 class BasicReadLoop {
 public:
 	using ReadStarter = std::function<int()>;
