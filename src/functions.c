@@ -77,14 +77,30 @@ static void correct_stat_info(struct stat* statbuf)
     statbuf->st_blocks = 0;
 }
 
+struct spawn_command_data {
+    const char* command;
+    const char* translated_path;
+    int flags;
+    struct pipefs_filedata* filedata;
+};
+
+static int create_command(void* data)
+{
+    struct spawn_command_data* args = (struct spawn_command_data*)data;
+    return spawn_command(args->command, args->translated_path, args->flags,
+	    args->filedata);
+}
+
 static void create_cache(const char* key, const char* translated_path, int flags,
 	struct pipefs_filedata* filedata)
 {
     struct pipefs_data* data = GET_DATA;
     if (pipefs_caches_get(data->caches, key, &filedata->cache)) {
 	log_msg("  New cache.\n");
-	int fd = spawn_command(data->command, translated_path, flags, filedata);
-	pipefs_readloop_add(data->readloop, fd, filedata->cache);
+	struct spawn_command_data args = {data->command, translated_path,
+		flags, filedata};
+	pipefs_readloop_add(data->readloop, create_command, filedata->cache,
+		&args);
     } else {
 	log_msg("  No new cache.\n");
     }
@@ -471,13 +487,16 @@ int pipefs_open(const char *path, struct fuse_file_info *fi)
 	    create_cache(path, translated_path, fi->flags, filedata);
 	    fi->nonseekable = 0;
 	} else {
-	    fd = spawn_command(data->command, translated_path, fi->flags, filedata);
+	    struct spawn_command_data args = {data->command, translated_path,
+		    fi->flags, filedata};
 
 	    if (data->seekable) {
 		fi->nonseekable = 0;
 		filedata->cache = pipefs_cache_create();
-		pipefs_readloop_add(data->readloop, fd, filedata->cache);
+		pipefs_readloop_add(data->readloop, create_command,
+			filedata->cache, &args);
 	    } else {
+		create_command(&args);
 		fi->nonseekable = 1;
 	    }
 	}

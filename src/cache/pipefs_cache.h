@@ -31,12 +31,13 @@ void pipefs_io_thread_start(struct pipefs_io_thread* io_thread);
 void pipefs_io_thread_stop(struct pipefs_io_thread* io_thread);
 
 struct pipefs_readloop;
+typedef int(*read_starter)(void*);
 
 struct pipefs_readloop* pipefs_readloop_create(struct pipefs_io_thread* io_thread);
 void pipefs_readloop_destroy(struct pipefs_readloop* readloop);
 void pipefs_readloop_cancel(struct pipefs_readloop* readloop);
-void pipefs_readloop_add(struct pipefs_readloop* readloop, int fd,
-		struct pipefs_cache* cache);
+void pipefs_readloop_add(struct pipefs_readloop* readloop, read_starter starter,
+		struct pipefs_cache* cache, void* data);
 void pipefs_readloop_remove(struct pipefs_readloop* readloop, int fd);
 
 struct pipefs_signal_handler;

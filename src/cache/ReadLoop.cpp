@@ -24,8 +24,9 @@ void ReadLoop::startReading(CacheData& data)
 			std::bind(&ReadLoop::readFinished, this, std::ref(data), _1, _2));
 }
 
-void ReadLoop::add(int fd, Cache& cache)
+void ReadLoop::add(ReadStarter readStarter, Cache& cache)
 {
+	int fd = readStarter();
 	log_msg("ReadLoop::add(%d)\n", fd);
 	auto emplaceResult = caches.emplace(fd,
 			CacheData{cache, {ioService, fd}, ""});
