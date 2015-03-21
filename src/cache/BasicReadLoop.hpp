@@ -12,13 +12,14 @@ namespace pipefs {
 
 class Cache;
 
-template <typename StreamDescriptor>
+template <typename StreamDescriptor, typename Logger>
 class BasicReadLoop {
 public:
 	using ReadStarter = std::function<int()>;
 
-	BasicReadLoop(boost::asio::io_service& ioService):
-		ioService(ioService) {}
+	BasicReadLoop(boost::asio::io_service& ioService, Logger logger = Logger{}):
+			ioService(ioService), logger(std::move(logger)) {}
+
 	void cancel()
 	{
 		for (auto& value: caches) {
@@ -29,7 +30,7 @@ public:
 	void add(ReadStarter readStarter, Cache& cache)
 	{
 		int fd = readStarter();
-		log_msg("ReadLoop::add(%d)\n", fd);
+		logger("ReadLoop::add(%d)\n", fd);
 		auto emplaceResult = caches.emplace(fd,
 				CacheData{cache, {ioService, fd}, ""});
 
@@ -41,7 +42,7 @@ public:
 
 	void remove(int fd)
 	{
-		log_msg("ReadLoop::remove(%d)\n", fd);
+		logger("ReadLoop::remove(%d)\n", fd);
 		auto it = caches.find(fd);
 		if (it != caches.end()) {
 			auto& data = it->second;
@@ -57,6 +58,7 @@ private:
 	constexpr static std::size_t bufferSize = 65536;
 
 	boost::asio::io_service& ioService;
+	Logger logger;
 
 	struct CacheData {
 		Cache& cache;
@@ -71,19 +73,19 @@ private:
 
 	void startReading(CacheData& data)
 	{
-		//log_msg("ReadLoop::startReading(%d)\n", data.stream.native_handle());
+		//logger("ReadLoop::startReading(%d)\n", data.stream.native_handle());
 		using std::placeholders::_1;
 		using std::placeholders::_2;
 		data.stream.async_read_some(
 				boost::asio::buffer<char, bufferSize>(data.buffer),
-				std::bind(&BasicReadLoop::readFinished, this, std::ref(data), 
+				std::bind(&BasicReadLoop::readFinished, this, std::ref(data),
 					_1, _2));
 	}
 
 	void readFinished(CacheData& data, boost::system::error_code errorCode,
 			std::size_t bytesTransferred)
 	{
-		//log_msg("ReadLoop::readFinished(fd=%d, error=%s, bytes=%lu)\n",
+		//logger("ReadLoop::readFinished(fd=%d, error=%s, bytes=%lu)\n",
 				//data.stream.native_handle(), errorCode.message().c_str(),
 				//bytesTransferred);
 
