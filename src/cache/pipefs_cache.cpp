@@ -105,11 +105,14 @@ void pipefs_readloop_cancel(struct pipefs_readloop* readloop)
 	TRY(reinterpret_cast<pipefs::ReadLoop*>(readloop)->cancel());
 }
 
-void pipefs_readloop_add(struct pipefs_readloop* readloop, 
+void pipefs_readloop_add(struct pipefs_readloop* readloop,
 		read_starter starter, struct pipefs_cache* cache, void* data)
 {
-	pipefs::ReadLoop::ReadStarter readStarter = [starter, data]() {
-			return starter(data);
+	pipefs::ReadLoop::ReadStarter readStarter = [starter, data](
+			boost::asio::io_service& ioService)
+		{
+			return std::make_shared<boost::asio::posix::stream_descriptor>(
+					ioService, starter(data));
 		};
 	TRY(reinterpret_cast<pipefs::ReadLoop*>(readloop)->add(readStarter,
 			*reinterpret_cast<pipefs::Cache*>(cache)));

@@ -5,6 +5,7 @@
 #include <boost/asio/buffer.hpp>
 #include <map>
 #include <functional>
+#include <memory>
 
 #include "log.h"
 
@@ -13,7 +14,8 @@ namespace pipefs {
 template <typename StreamDescriptor, typename Cache, typename Logger>
 class BasicReadLoop {
 public:
-	using ReadStarter = std::function<int()>;
+	using ReadStarter = std::function<std::shared_ptr<StreamDescriptor>(
+			boost::asio::io_service&)>;
 
 	BasicReadLoop(boost::asio::io_service& ioService, Logger logger = Logger{}):
 			ioService(ioService), logger(std::move(logger)) {}
@@ -21,16 +23,16 @@ public:
 	void cancel()
 	{
 		for (auto& value: caches) {
-			value.second.stream.cancel();
+			value.second.stream->cancel();
 		}
 	}
 
 	void add(ReadStarter readStarter, Cache& cache)
 	{
-		int fd = readStarter();
+		auto stream = readStarter(ioService);
+		auto fd = stream->native_handle();
 		logger("ReadLoop::add(%d)\n", fd);
-		auto emplaceResult = caches.emplace(fd,
-				CacheData{cache, {ioService, fd}, ""});
+		auto emplaceResult = caches.emplace(fd, CacheData{cache, stream, ""});
 
 		if (emplaceResult.second) {
 			auto& data = emplaceResult.first->second;
@@ -45,7 +47,7 @@ public:
 		if (it != caches.end()) {
 			auto& data = it->second;
 			boost::system::error_code errorCode;
-			data.stream.cancel(errorCode);
+			data.stream->cancel(errorCode);
 			// ignore the error
 
 			caches.erase(it);
@@ -60,7 +62,7 @@ private:
 
 	struct CacheData {
 		Cache& cache;
-		StreamDescriptor stream;
+		std::shared_ptr<StreamDescriptor> stream;
 		char buffer[bufferSize];
 
 		CacheData(CacheData&&) = default;
@@ -71,10 +73,10 @@ private:
 
 	void startReading(CacheData& data)
 	{
-		//logger("ReadLoop::startReading(%d)\n", data.stream.native_handle());
+		//logger("ReadLoop::startReading(%d)\n", data.stream->native_handle());
 		using std::placeholders::_1;
 		using std::placeholders::_2;
-		data.stream.async_read_some(
+		data.stream->async_read_some(
 				boost::asio::buffer<char, bufferSize>(data.buffer),
 				std::bind(&BasicReadLoop::readFinished, this, std::ref(data),
 					_1, _2));
@@ -84,7 +86,7 @@ private:
 			std::size_t bytesTransferred)
 	{
 		//logger("ReadLoop::readFinished(fd=%d, error=%s, bytes=%lu)\n",
-				//data.stream.native_handle(), errorCode.message().c_str(),
+				//data.stream->native_handle(), errorCode.message().c_str(),
 				//bytesTransferred);
 
 		if (!errorCode) {
@@ -97,10 +99,10 @@ private:
 		}
 
 		data.cache.finish();
-		int key = data.stream.native_handle();
-		if (data.stream.is_open()) {
+		int key = data.stream->native_handle();
+		if (data.stream->is_open()) {
 			boost::system::error_code errorCode;
-			data.stream.close(errorCode);
+			data.stream->close(errorCode);
 			// ignore the error
 		}
 

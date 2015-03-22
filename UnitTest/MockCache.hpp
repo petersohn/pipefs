@@ -18,7 +18,7 @@ MOCK_CLASS(MockCache) {
 	MockCache():id(maxId++) {
 	}
 
-	MockCache(MockCache&& other):id(maxId++) {
+	MockCache(MockCache&&):id(maxId++) {
 	}
 
 	~MockCache() {
