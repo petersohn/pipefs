@@ -699,6 +699,8 @@ int pipefs_release(const char *path, struct fuse_file_info *fi)
 	} else if (filedata->cache) {
 	    pipefs_readloop_remove(data->readloop, filedata->fd);
 	    pipefs_cache_destroy(filedata->cache);
+	} else {
+	    retstat = close(filedata->fd);
 	}
     } else {
 	retstat = close(filedata->fd);
