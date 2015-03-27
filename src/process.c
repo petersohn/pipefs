@@ -7,6 +7,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <signal.h>
+#include <string.h>
 
 int spawn_command(const char* command, const char* input_file, int flags,
 		struct pipefs_filedata* filedata)
@@ -49,6 +51,14 @@ int spawn_command(const char* command, const char* input_file, int flags,
 		}
 		close(fd);
 		close(pipefd[1]);
+
+		struct sigaction signal_action;
+		memset(&signal_action, 0, sizeof(signal_action));
+		signal_action.sa_handler = SIG_DFL;
+		for (int signal = 1; signal < _NSIG; ++signal) {
+			sigaction(signal, &signal_action, NULL);
+		}
+
 		execl("/bin/sh", "/bin/sh", "-c", command, (char*)NULL);
 		// at this point, execl() is unsuccessful
 		_exit(1);
