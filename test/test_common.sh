@@ -52,6 +52,7 @@ function get_common_test_cases()
 	echo "testcases/suffix_files_are_translated.sh"
 	echo "testcases/translation_works_for_large_files.sh"
 	echo "testcases/translation_works_in_parallel.sh"
+	echo "testcases/translating_works_after_interrupting_a_read.sh"
 	echo "testcases/file_descriptors_are_not_leaked.sh"
 }
 
