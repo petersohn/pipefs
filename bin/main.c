@@ -55,7 +55,6 @@ int main(int argc, char* argv[])
     if (data.pidfile) {
         fclose(fopen(data.pidfile, "w"));
         data.pidfile = realpath(data.pidfile, real_pidfile);
-	    printf("PIDFILE %s\n", data.pidfile);
     }
     /*signal_handler_initialize();*/
 

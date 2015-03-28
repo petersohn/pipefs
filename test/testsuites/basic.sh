@@ -3,8 +3,7 @@
 function test_init()
 {
 	common_init
-	assert "$binary_name" --log-file "$log_dir/pipefs.log" --source-suffix .1 --target-suffix .2 --command "$(get_command)" --root-dir rootdir mountpoint
-	wait_for_fuse
+	start_pipefs
 }
 
 function test_cleanup()

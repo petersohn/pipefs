@@ -3,8 +3,8 @@
 function test_init()
 {
 	common_init
-	assert "$binary_name" --seekable --log-file "$log_dir/pipefs.log" --source-suffix .1 --target-suffix .2 --command "$(get_command)" --root-dir rootdir mountpoint
-	wait_for_fuse
+	custom_options=(--seekable)
+	start_pipefs
 }
 
 function test_cleanup()

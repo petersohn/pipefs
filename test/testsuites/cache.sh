@@ -11,8 +11,8 @@ function test_init()
 		command="echo line >>$executed_filename && cat"
 	fi
 
-	assert "$binary_name" --cache --cache-limit "$cache_limit" --log-file "$log_dir/pipefs.log" --source-suffix .1 --target-suffix .2 --command "$(get_command)" --root-dir rootdir mountpoint
-	wait_for_fuse
+	custom_options=(--cache --cache-limit "$cache_limit")
+	start_pipefs
 }
 
 function test_cleanup()

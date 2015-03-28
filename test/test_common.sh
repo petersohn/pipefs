@@ -4,6 +4,7 @@ function common_init()
 {
 	mkdir rootdir
 	mkdir mountpoint
+	log_options=(--log-file "$log_dir/pipefs.log")
 }
 
 function run_with_tries()
@@ -34,6 +35,11 @@ function wait_for_fuse()
 		echo "Failed to mount filesystem."
 		exit 1
 	fi
+}
+
+function start_pipefs() {
+	assert "$binary_name" "${custom_options[@]}" ${log_options[@]} --pidfile pidfile --source-suffix .1 --target-suffix .2 --command "$(get_command)" --root-dir rootdir mountpoint
+	wait_for_fuse
 }
 
 function common_cleanup()
