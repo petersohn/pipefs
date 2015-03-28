@@ -15,10 +15,12 @@ static struct option options[] = {
     {"cache",         no_argument,       NULL, 'C'},
     {"cache-limit",   required_argument, NULL, 'L'},
     {"log-file",      required_argument, NULL, 'l'},
+    {"pidfile",       required_argument, NULL, 'p'},
     {"root-dir",      required_argument, NULL, 'r'},
     {"seekable",      no_argument,       NULL, 'k'},
     {"source-suffix", required_argument, NULL, 's'},
     {"target-suffix", required_argument, NULL, 't'},
+    {NULL, 0, NULL, 0}
 };
 
 size_t parse_size(const char* input)
@@ -72,7 +74,7 @@ char** parse_arguments(int argc, char* argv[], struct pipefs_data* data,
     int option;
     optind = 0;
     while ((option =
-            getopt_long(argc, argv, "hc:C:l:ks:t:", options, NULL)) >= 0) {
+            getopt_long(argc, argv, "hc:C:l:kp:s:t:", options, NULL)) >= 0) {
         switch (option) {
         case 'h':
             print_usage(argv[0]);
@@ -91,6 +93,9 @@ char** parse_arguments(int argc, char* argv[], struct pipefs_data* data,
             break;
         case 'l':
             log_open(optarg);
+            break;
+        case 'p':
+            data->pidfile = optarg;
             break;
         case 'r':
             data->rootdir = optarg;
@@ -127,6 +132,11 @@ void print_usage(const char* program_name)
                     "Options:\n"
                     "    --help             Print a help message then exit.\n"
                     "    --command          The filter command. Mandatory.\n"
+		    "    --cache            Use caching. Implies --seekable.\n"
+		    "    --cache-limit      The maximum total size of the cache.\n"
+                    "    --log-file         The file to log to. Optional. If not\n"
+                    "                       provided, no logging is performed.\n"
+		    "    --pidfile          Store the pid of the process in this file.\n"
                     "    --root-dir         The directory to be mapped.\n"
                     "                       Mandatory.\n"
 		    "    --seekable         Allow seeking in the translated files.\n"
@@ -134,8 +144,6 @@ void print_usage(const char* program_name)
                     "                       transformed. Mandatory.\n"
                     "    --target-suffix    The suffix of the transformed files.\n"
                     "                       Mandatory.\n"
-                    "    --log-file         The file to log to. Optional. If not\n"
-                    "                       provided, no logging is performed.\n"
                     "\n",
             program_name);
 }

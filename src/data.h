@@ -11,6 +11,7 @@ extern "C" {
 
 struct pipefs_data {
     FILE* logfile;
+    char* pidfile;
     char* rootdir;
     char* source_suffix;
     char* target_suffix;

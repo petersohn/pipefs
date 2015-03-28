@@ -897,6 +897,14 @@ void *pipefs_init(struct fuse_conn_info *conn)
 	data->caches = pipefs_caches_create();
     }
 
+    if (data->pidfile) {
+	int pid = getpid();
+	log_msg("pidfile = %s\n -- pid = %d", data->pidfile, pid);
+        FILE* pidfile = fopen(data->pidfile, "w");
+        fprintf(pidfile, "%d", pid);
+	fclose(pidfile);
+    }
+
     return data;
 }
 
@@ -922,6 +930,10 @@ void pipefs_destroy(void *userdata)
     pipefs_readloop_destroy(data->readloop);
     pipefs_signal_handler_destroy(data->signal_handler);
     pipefs_io_thread_destroy(data->io_thread);
+
+    if (data->pidfile) {
+	unlink(data->pidfile);
+    }
 }
 
 /**

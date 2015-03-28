@@ -50,6 +50,13 @@ int main(int argc, char* argv[])
 
     char real_rootdir[PATH_MAX];
     data.rootdir = realpath(data.rootdir, real_rootdir);
+
+    char real_pidfile[PATH_MAX];
+    if (data.pidfile) {
+        fclose(fopen(data.pidfile, "w"));
+        data.pidfile = realpath(data.pidfile, real_pidfile);
+	    printf("PIDFILE %s\n", data.pidfile);
+    }
     /*signal_handler_initialize();*/
 
     // turn over control to fuse
@@ -60,6 +67,10 @@ int main(int argc, char* argv[])
     int fuse_stat = fuse_main(fuse_argc, fuse_argv, &pipefs_oper, &data);
     fprintf(stderr, "fuse_main returned %d\n", fuse_stat);
     free(fuse_argv);
+
+    if (data.pidfile) {
+        unlink(data.pidfile);
+    }
 
     return fuse_stat;
 }
