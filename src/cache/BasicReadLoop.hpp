@@ -30,6 +30,7 @@ public:
 	void add(ReadStarter readStarter, Cache& cache)
 	{
 		auto stream = readStarter(ioService);
+		assert(stream);
 		auto fd = stream->native_handle();
 		logger("ReadLoop::add(%d)\n", fd);
 		auto emplaceResult = caches.emplace(fd, CacheData{cache, stream, ""});
@@ -43,15 +44,7 @@ public:
 	void remove(int fd)
 	{
 		logger("ReadLoop::remove(%d)\n", fd);
-		auto it = caches.find(fd);
-		if (it != caches.end()) {
-			auto& data = it->second;
-			boost::system::error_code errorCode;
-			data.stream->cancel(errorCode);
-			// ignore the error
-
-			caches.erase(it);
-		}
+		caches.erase(fd);
 	}
 
 private:
@@ -67,6 +60,19 @@ private:
 
 		CacheData(CacheData&&) = default;
 		CacheData& operator=(CacheData&&) = default;
+
+		~CacheData()
+		{
+			if (stream) {
+				cache.finish();
+				boost::system::error_code errorCode;
+				stream->cancel(errorCode);
+				if (stream->is_open()) {
+					stream->close(errorCode);
+					// ignore the error
+				}
+			}
+		}
 	};
 
 	std::map<int, CacheData> caches;
@@ -98,14 +104,7 @@ private:
 		} else {
 		}
 
-		data.cache.finish();
 		int key = data.stream->native_handle();
-		if (data.stream->is_open()) {
-			boost::system::error_code errorCode;
-			data.stream->close(errorCode);
-			// ignore the error
-		}
-
 		remove(key);
 	}
 };
