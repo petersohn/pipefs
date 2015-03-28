@@ -35,19 +35,46 @@ function wait_for_fuse()
 		echo "Failed to mount filesystem."
 		exit 1
 	fi
+
+	assert [ -f pidfile ]
+	local command_pid=$(<pidfile)
+	cp pidfile pidfile2
+	local cmdline_filename="/proc/$command_pid/cmdline"
+	assert [ -f "$cmdline_filename" ]
+
+	local pidfile_command_line=()
+	while read -r -d '' arg; do
+		pidfile_command_line+=("$arg")
+	done < "$cmdline_filename"
+
+	assert [ "${pidfile_command_line[*]}" == "${command_line[*]}" ]
 }
 
 function start_pipefs() {
-	assert "$binary_name" "${custom_options[@]}" ${log_options[@]} --pidfile pidfile --source-suffix .1 --target-suffix .2 --command "$(get_command)" --root-dir rootdir mountpoint
+	command_line=("$binary_name" "${custom_options[@]}" ${log_options[@]} --pidfile pidfile --source-suffix .1 --target-suffix .2 --command "$(get_command)" --root-dir rootdir mountpoint)
+	assert "${command_line[@]}"
 	wait_for_fuse
 }
 
 function common_cleanup()
 {
+	result=
 	if ! run_with_tries 100 eval '[ ! -e mountpoint ] || fusermount -u mountpoint && rm -rf mountpoint && [ ! -e mountpoint ]'; then
 		echo "Failed to remove mountpoint."
-		exit 1
+		result=1
 	fi
+
+	local command_pid=$(<pidfile2)
+	if [ -e "/proc/$command_pid" ]; then
+		echo "The pipefs process did not die."
+		kill -9 "-$command_pid"
+		fusermount -u mountpoint
+		result=1
+	fi
+
+	assert [ ! -e pidfile ]
+
+	return $result
 }
 
 function get_common_test_cases()
