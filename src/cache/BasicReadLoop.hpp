@@ -22,9 +22,8 @@ public:
 
 	void cancel()
 	{
-		for (auto& value: caches) {
-			value.second.stream->cancel();
-		}
+		logger("ReadLoop::cancel()\n");
+		ioService.post([this]() { caches.clear(); });
 	}
 
 	void add(ReadStarter readStarter, Cache& cache)
@@ -33,7 +32,8 @@ public:
 		assert(stream);
 		auto fd = stream->native_handle();
 		logger("ReadLoop::add(%d)\n", fd);
-		auto emplaceResult = caches.emplace(fd, CacheData{cache, stream, ""});
+		auto emplaceResult = caches.emplace(fd,
+				CacheData{logger, cache, stream, ""});
 
 		if (emplaceResult.second) {
 			auto& data = emplaceResult.first->second;
@@ -54,6 +54,7 @@ private:
 	Logger logger;
 
 	struct CacheData {
+		Logger& logger;
 		Cache& cache;
 		std::shared_ptr<StreamDescriptor> stream;
 		char buffer[bufferSize];
@@ -64,6 +65,7 @@ private:
 		~CacheData()
 		{
 			if (stream) {
+				logger("  destroy cache for fd %d\n", stream->native_handle());
 				cache.finish();
 				boost::system::error_code errorCode;
 				stream->cancel(errorCode);
@@ -85,26 +87,23 @@ private:
 		data.stream->async_read_some(
 				boost::asio::buffer<char, bufferSize>(data.buffer),
 				std::bind(&BasicReadLoop::readFinished, this, std::ref(data),
-					_1, _2));
+					data.stream, _1, _2));
 	}
 
-	void readFinished(CacheData& data, boost::system::error_code errorCode,
-			std::size_t bytesTransferred)
+	void readFinished(CacheData& data, std::shared_ptr<StreamDescriptor> stream,
+			boost::system::error_code errorCode, std::size_t bytesTransferred)
 	{
 		//logger("ReadLoop::readFinished(fd=%d, error=%s, bytes=%lu)\n",
-				//data.stream->native_handle(), errorCode.message().c_str(),
+				//stream->native_handle(), errorCode.message().c_str(),
 				//bytesTransferred);
 
-		if (!errorCode) {
-			if (bytesTransferred > 0) {
-				data.cache.write(data.buffer, bytesTransferred);
-				startReading(data);
-				return;
-			}
-		} else {
+		if (!errorCode && bytesTransferred > 0 && stream->is_open()) {
+			data.cache.write(data.buffer, bytesTransferred);
+			startReading(data);
+			return;
 		}
 
-		int key = data.stream->native_handle();
+		int key = stream->native_handle();
 		remove(key);
 	}
 };

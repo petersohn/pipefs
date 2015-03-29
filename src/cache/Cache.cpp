@@ -6,6 +6,9 @@ namespace pipefs {
 
 void Cache::write(const void* buf, std::size_t length)
 {
+	//log_msg("Cache::write(this=%p, length=%lu); size = %lu\n",
+			//this, length, data.size());
+
 	std::unique_lock<std::mutex> lock{mutex};
 	std::size_t position = data.size();
 	data.resize(position + length);
@@ -16,8 +19,8 @@ void Cache::write(const void* buf, std::size_t length)
 int Cache::read(void* buf, std::size_t length, std::size_t position) const
 {
 	std::unique_lock<std::mutex> lock{mutex};
-	log_msg("Cache::read(this=%p, position=%lu, length=%lu); size = %lu\n",
-			this, position, length, data.size());
+	//log_msg("Cache::read(this=%p, position=%lu, length=%lu); size = %lu\n",
+			//this, position, length, data.size());
 
 	while (!finished && position >= data.size()) {
 		//log_msg("  blocking...");

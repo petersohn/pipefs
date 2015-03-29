@@ -920,16 +920,17 @@ void pipefs_destroy(void *userdata)
     struct pipefs_data* data = (struct pipefs_data*)userdata;
     log_msg(" \nbb_destroy(userdata=0x%08x)\n", userdata);
 
-    if (data->caches) {
-	pipefs_caches_destroy(data->caches);
-    }
-
     pipefs_readloop_cancel(data->readloop);
     pipefs_signal_handler_cancel(data->signal_handler);
     pipefs_io_thread_stop(data->io_thread);
+
     pipefs_readloop_destroy(data->readloop);
     pipefs_signal_handler_destroy(data->signal_handler);
     pipefs_io_thread_destroy(data->io_thread);
+
+    if (data->caches) {
+	pipefs_caches_destroy(data->caches);
+    }
 
     if (data->pidfile) {
 	unlink(data->pidfile);
