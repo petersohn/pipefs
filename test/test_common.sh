@@ -65,7 +65,7 @@ function common_cleanup()
 	fi
 
 	local command_pid=$(<pidfile2)
-	if [ -e "/proc/$command_pid" ]; then
+	if ! run_with_tries 100 [ ! -e "/proc/$command_pid" ]; then
 		echo "The pipefs process did not die."
 		kill -9 "-$command_pid"
 		fusermount -u mountpoint

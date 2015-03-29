@@ -6,21 +6,24 @@ namespace pipefs {
 
 void Cache::write(const void* buf, std::size_t length)
 {
-	//log_msg("Cache::write(this=%p, length=%lu); size = %lu\n",
-			//this, length, data.size());
+	log_msg("Cache::write(this=%p, length=%lu)", this, length);
 
 	std::unique_lock<std::mutex> lock{mutex};
-	std::size_t position = data.size();
-	data.resize(position + length);
-	std::memmove(&data[position], buf, length);
+	{
+		log_msg("Cache::wirite() lock got; size = %lu\n", data.size());
+		std::size_t position = data.size();
+		data.resize(position + length);
+		std::memmove(&data[position], buf, length);
+	}
 	readWaiter.notify_all();
 }
 
 int Cache::read(void* buf, std::size_t length, std::size_t position) const
 {
+	log_msg("Cache::read(this=%p, position=%lu, length=%lu)",
+			this, position, length);
 	std::unique_lock<std::mutex> lock{mutex};
-	//log_msg("Cache::read(this=%p, position=%lu, length=%lu); size = %lu\n",
-			//this, position, length, data.size());
+	log_msg("Cache::read() lock got; size = %lu\n", data.size());
 
 	while (!finished && position >= data.size()) {
 		//log_msg("  blocking...");
@@ -41,8 +44,11 @@ int Cache::read(void* buf, std::size_t length, std::size_t position) const
 void Cache::finish()
 {
 	log_msg("Cache::finish(this=%p)\n", this);
-	std::unique_lock<std::mutex> lock{mutex};
-	finished = true;
+	{
+		std::unique_lock<std::mutex> lock{mutex};
+		log_msg("Cache::finish() lock got");
+		finished = true;
+	}
 	readWaiter.notify_all();
 }
 

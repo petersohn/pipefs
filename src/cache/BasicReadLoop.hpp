@@ -23,7 +23,10 @@ public:
 	void cancel()
 	{
 		logger("ReadLoop::cancel()\n");
-		ioService.post([this]() { caches.clear(); });
+		ioService.post([this]() {
+				logger("Clear caches.\n");
+				caches.clear();
+			});
 	}
 
 	void add(ReadStarter readStarter, Cache& cache)
@@ -36,15 +39,19 @@ public:
 				CacheData{logger, cache, stream, ""});
 
 		if (emplaceResult.second) {
+			logger("  added to read loop\n");
 			auto& data = emplaceResult.first->second;
 			startReading(data);
+		} else {
+			logger("  not added to read loop\n");
 		}
 	}
 
 	void remove(int fd)
 	{
 		logger("ReadLoop::remove(%d)\n", fd);
-		caches.erase(fd);
+		auto result = caches.erase(fd);
+		logger("  result = %lu\n", result);
 	}
 
 private:
@@ -65,7 +72,8 @@ private:
 		~CacheData()
 		{
 			if (stream) {
-				logger("  destroy cache for fd %d\n", stream->native_handle());
+				logger("  remove cache for fd %d from read loop\n",
+						stream->native_handle());
 				cache.finish();
 				boost::system::error_code errorCode;
 				stream->cancel(errorCode);
@@ -81,7 +89,7 @@ private:
 
 	void startReading(CacheData& data)
 	{
-		//logger("ReadLoop::startReading(%d)\n", data.stream->native_handle());
+		logger("ReadLoop::startReading(%d)\n", data.stream->native_handle());
 		using std::placeholders::_1;
 		using std::placeholders::_2;
 		data.stream->async_read_some(
@@ -93,9 +101,9 @@ private:
 	void readFinished(CacheData& data, std::shared_ptr<StreamDescriptor> stream,
 			boost::system::error_code errorCode, std::size_t bytesTransferred)
 	{
-		//logger("ReadLoop::readFinished(fd=%d, error=%s, bytes=%lu)\n",
-				//stream->native_handle(), errorCode.message().c_str(),
-				//bytesTransferred);
+		logger("ReadLoop::readFinished(fd=%d, error=%s, bytes=%lu)\n",
+				stream->native_handle(), errorCode.message().c_str(),
+				bytesTransferred);
 
 		if (!errorCode && bytesTransferred > 0 && stream->is_open()) {
 			data.cache.write(data.buffer, bytesTransferred);
