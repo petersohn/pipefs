@@ -6,6 +6,7 @@
 #include <map>
 #include <functional>
 #include <memory>
+#include <mutex>
 
 #include "log.h"
 
@@ -23,10 +24,8 @@ public:
 	void cancel()
 	{
 		logger("ReadLoop::cancel()\n");
-		ioService.post([this]() {
-				logger("Clear caches.\n");
-				caches.clear();
-			});
+		std::unique_lock<std::mutex> lock{mutex};
+		caches.clear();
 	}
 
 	void add(ReadStarter readStarter, Cache& cache)
@@ -35,6 +34,8 @@ public:
 		assert(stream);
 		auto fd = stream->native_handle();
 		logger("ReadLoop::add(%d)\n", fd);
+
+		std::unique_lock<std::mutex> lock{mutex};
 		auto emplaceResult = caches.emplace(fd,
 				CacheData{logger, cache, stream, ""});
 
@@ -50,6 +51,8 @@ public:
 	void remove(int fd)
 	{
 		logger("ReadLoop::remove(%d)\n", fd);
+
+		std::unique_lock<std::mutex> lock{mutex};
 		auto result = caches.erase(fd);
 		logger("  result = %lu\n", result);
 	}
@@ -59,6 +62,7 @@ private:
 
 	boost::asio::io_service& ioService;
 	Logger logger;
+	std::mutex mutex;
 
 	struct CacheData {
 		Logger& logger;
