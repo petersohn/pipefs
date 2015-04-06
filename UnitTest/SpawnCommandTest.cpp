@@ -1,5 +1,5 @@
-#include "cache/SpawnCommand.hpp"
-#include "cache/FileData.hpp"
+#include "controller/SpawnCommand.hpp"
+#include "controller/FileData.hpp"
 #include "System.hpp"
 
 #include <boost/test/unit_test.hpp>

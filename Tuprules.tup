@@ -13,6 +13,6 @@ TEST_TUP = $(TUP_CWD)/test.tup
 
 TUTORIAL_DIR = $(TUP_CWD)/tutorial
 SOURCE_DIR = $(TUP_CWD)/src
-CACHE_DIR = $(TUP_CWD)/src/cache
+CONTROLLER_DIR = $(TUP_CWD)/src/controller
 TURTLE_DIR = $(TUP_CWD)/turtle
 

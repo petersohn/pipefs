@@ -2,6 +2,7 @@
 #include "data.h"
 #include "log.h"
 #include "util.h"
+#include "controller/pipefs_controller.h"
 
 #include "functions.h"
 

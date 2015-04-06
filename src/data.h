@@ -1,5 +1,3 @@
-#include "cache/pipefs_cache.h"
-
 #include <limits.h>
 #include <stdio.h>
 #include <unistd.h>
