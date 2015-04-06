@@ -1,6 +1,6 @@
-#include "process.h"
-#include "params.h"
-#include "data.h"
+#include "SpawnCommand.hpp"
+#include "FileData.hpp"
+#include "SystemError.hpp"
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -10,25 +10,27 @@
 #include <signal.h>
 #include <string.h>
 
-int spawn_command(const char* command, const char* input_file, int flags,
-		struct pipefs_filedata* filedata)
+namespace pipefs {
+
+void spawnCommand(const char* command, const char* inputFile, int flags,
+		FileData& fileData)
 {
-	int fd = open(input_file, O_RDONLY);
+	int fd = open(inputFile, O_RDONLY);
 	if (fd < 0) {
-		return -1;
+		throwError();
 	}
 
 	int pipefd[2];
 	if (pipe(pipefd) < 0) {
 		close(fd);
-		return -1;
+		throwError();
 	}
 
 	if (fcntl(pipefd[0], F_SETFL, flags) < 0) {
 		close(pipefd[0]);
 		close(pipefd[1]);
 		close(fd);
-		return -1;
+		throwError();
 	}
 
 	int pid = fork();
@@ -36,7 +38,7 @@ int spawn_command(const char* command, const char* input_file, int flags,
 		close(pipefd[0]);
 		close(pipefd[1]);
 		close(fd);
-		return -1;
+		throwError();
 	}
 
 	if (pid == 0) { // child
@@ -56,10 +58,10 @@ int spawn_command(const char* command, const char* input_file, int flags,
 		memset(&signal_action, 0, sizeof(signal_action));
 		signal_action.sa_handler = SIG_DFL;
 		for (int signal = 1; signal < _NSIG; ++signal) {
-			sigaction(signal, &signal_action, NULL);
+			sigaction(signal, &signal_action, nullptr);
 		}
 
-		execl("/bin/sh", "/bin/sh", "-c", command, (char*)NULL);
+		execl("/bin/sh", "/bin/sh", "-c", command, static_cast<char*>(nullptr));
 		// at this point, execl() is unsuccessful
 		_exit(1);
 	}
@@ -67,14 +69,12 @@ int spawn_command(const char* command, const char* input_file, int flags,
 	// parent
 	close(pipefd[1]);
 
-	if (filedata) {
-		filedata->original_fd = fd;
-		filedata->fd = pipefd[0];
-		filedata->pid = pid;
-		filedata->current_offset = 0;
-	} else {
-		close(fd);
-	}
-	return pipefd[0];
+	fileData.originalFd = fd;
+	fileData.fd = pipefd[0];
+	fileData.pid = pid;
+	fileData.currentOffset = 0;
 }
+
+};
+
 

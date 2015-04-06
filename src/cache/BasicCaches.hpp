@@ -6,6 +6,7 @@
 #include <mutex>
 #include <assert.h>
 #include <algorithm>
+#include <memory>
 #include <vector>
 
 namespace pipefs {
@@ -17,7 +18,7 @@ public:
 		logger(std::move(logger)), timeUtil(std::move(timeUtil))
 	{}
 
-	std::pair<Cache&, bool> get(const std::string& key)
+	std::pair<std::shared_ptr<Cache>, bool> get(const std::string& key)
 	{
 		std::unique_lock<std::mutex> lock{mutex};
 		auto it = caches.find(key);
@@ -53,7 +54,7 @@ public:
 		std::size_t totalSize = 0;
 
 		for (const auto& value: caches) {
-			totalSize += value.second.cache.getSize();
+			totalSize += value.second.cache->getSize();
 		}
 
 		logger("Total size occupied by size: %llu\n", totalSize);
@@ -72,9 +73,9 @@ public:
 
 			for (const auto& it: elements) {
 				auto& data = it->second;
-				if (data.cache.isFinished() && data.usageCount == 0) {
+				if (data.cache->isFinished() && data.usageCount == 0) {
 					logger("Cleared out cache for %s\n", it->first.c_str());
-					totalSize -= data.cache.getSize();
+					totalSize -= data.cache->getSize();
 					caches.erase(it);
 				}
 
@@ -87,7 +88,7 @@ public:
 	}
 private:
 	struct CacheData {
-		Cache cache;
+		std::shared_ptr<Cache> cache = std::make_shared<Cache>();
 		typename TimeUtil::time_point lastAccessed;
 		unsigned usageCount;
 

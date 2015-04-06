@@ -2,50 +2,29 @@
 #define SRC_CACHE_PIPEFS_CACHE_H
 
 #include <stddef.h>
+#include <sys/types.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct pipefs_cache;
+struct pipefs_controller;
+struct pipefs_data;
+struct pipefs_filedata;
+struct fuse_file_info;
 
-struct pipefs_cache* pipefs_cache_create();
-void pipefs_cache_destroy(struct pipefs_cache* cache);
-int pipefs_cache_read(const struct pipefs_cache* cache, void* buf,
-		size_t length, size_t position);
+struct pipefs_controller* pipefs_controller_create(const struct pipefs_data* data);
+void pipefs_controller_destroy(struct pipefs_controller* controller);
+int pipefs_controller_open(struct pipefs_controller* controller,
+        const char* filename, const char* translatedPath,
+        struct fuse_file_info* fi, struct pipefs_filedata** result);
+int pipefs_controller_read(struct pipefs_controller* controller,
+        struct pipefs_filedata* data, void* buffer, size_t size, off_t offset);
+int pipefs_controller_release(struct pipefs_controller* controller,
+        const char* filename, struct pipefs_filedata* data);
+int pipefs_get_original_fd(struct pipefs_filedata* data);
 
-struct pipefs_caches;
-
-struct pipefs_caches* pipefs_caches_create();
-void pipefs_caches_destroy(struct pipefs_caches* caches);
-int pipefs_caches_get(struct pipefs_caches* caches, const char* key,
-		struct pipefs_cache** cache);
-void pipefs_caches_release(struct pipefs_caches* caches, const char* key);
-void pipefs_caches_cleanup(struct pipefs_caches* caches, size_t target_size);
-
-struct pipefs_io_thread;
-
-struct pipefs_io_thread* pipefs_io_thread_create();
-void pipefs_io_thread_destroy(struct pipefs_io_thread* io_thread);
-void pipefs_io_thread_start(struct pipefs_io_thread* io_thread);
-void pipefs_io_thread_stop(struct pipefs_io_thread* io_thread);
-
-struct pipefs_readloop;
-typedef int(*read_starter)(void*);
-
-struct pipefs_readloop* pipefs_readloop_create(struct pipefs_io_thread* io_thread);
-void pipefs_readloop_destroy(struct pipefs_readloop* readloop);
-void pipefs_readloop_cancel(struct pipefs_readloop* readloop);
-void pipefs_readloop_add(struct pipefs_readloop* readloop, read_starter starter,
-		struct pipefs_cache* cache, void* data);
-void pipefs_readloop_remove(struct pipefs_readloop* readloop, int fd);
-
-struct pipefs_signal_handler;
-
-struct pipefs_signal_handler* pipefs_signal_handler_create(struct pipefs_io_thread* io_thread);
-void pipefs_signal_handler_destroy(struct pipefs_signal_handler* signal_handler);
-void pipefs_signal_handler_start(struct pipefs_signal_handler* signal_handler);
-void pipefs_signal_handler_cancel(struct pipefs_signal_handler* signal_handler);
+void log_error(const char *str, int error);
 
 #ifdef __cplusplus
 }

@@ -2,7 +2,6 @@
 #include "data.h"
 #include "log.h"
 #include "util.h"
-#include "process.h"
 
 #include "functions.h"
 
@@ -24,7 +23,7 @@
 static int pipefs_error(char *str)
 {
     int ret = -errno;
-    log_msg("    ERROR %s: %s\n", str, strerror(errno));
+    log_error(str, errno);
     return ret;
 }
 
@@ -50,9 +49,6 @@ static int has_source_path(const char* fpath)
 	    data->target_suffix);
     free(translated_path);
     int result = !!translated_path;
-    if (result) {
-	log_msg("    has_source_path: returning error\n");
-    }
 
     return result;
 }
@@ -60,11 +56,9 @@ static int has_source_path(const char* fpath)
 static int check_suffix(const char* fpath)
 {
     int result = is_suffix(fpath, GET_DATA->source_suffix, NULL);
-    if (result) {
-	log_msg("    check_suffix: returning error\n");
-    }
     return result;
 }
+
 
 #define CHECK_SOURCE_PATH_CREATE(fpath) if (has_source_path(fpath)) return -EEXIST
 #define CHECK_SOURCE_PATH_MODIFY(fpath) if (has_source_path(fpath)) return -EPERM
@@ -75,35 +69,6 @@ static void correct_stat_info(struct stat* statbuf)
     statbuf->st_mode = S_IFREG | (statbuf->st_mode & 0444);
     statbuf->st_size = 0;
     statbuf->st_blocks = 0;
-}
-
-struct spawn_command_data {
-    const char* command;
-    const char* translated_path;
-    int flags;
-    struct pipefs_filedata* filedata;
-};
-
-static int create_command(void* data)
-{
-    struct spawn_command_data* args = (struct spawn_command_data*)data;
-    return spawn_command(args->command, args->translated_path, args->flags,
-	    args->filedata);
-}
-
-static void create_cache(const char* key, const char* translated_path, int flags,
-	struct pipefs_filedata* filedata)
-{
-    struct pipefs_data* data = GET_DATA;
-    if (pipefs_caches_get(data->caches, key, &filedata->cache)) {
-	log_msg("  New cache.\n");
-	struct spawn_command_data args = {data->command, translated_path,
-		flags, filedata};
-	pipefs_readloop_add(data->readloop, create_command, filedata->cache,
-		&args);
-    } else {
-	log_msg("  No new cache.\n");
-    }
 }
 
 /** Get file attributes.
@@ -472,49 +437,34 @@ int pipefs_open(const char *path, struct fuse_file_info *fi)
     char* translated_path = translate_file(fpath, data->source_suffix,
 	    data->target_suffix);
 
-    struct pipefs_filedata* filedata = malloc(sizeof(struct pipefs_filedata));
-    memset(filedata, 0, sizeof(struct pipefs_filedata));
-    int fd = 0;
+    struct pipefs_basic_filedata* filedata = malloc(sizeof(struct pipefs_basic_filedata));
+    memset(filedata, 0, sizeof(struct pipefs_basic_filedata));
+    int result = 0;
     if (translated_path) {
-	if (fi->flags & (O_WRONLY | O_RDWR | O_CREAT)) {
-	    log_msg("    error: flags=%04o\n", fi->flags);
-	    return -EINVAL;
-	}
-
-	fi->direct_io = 1;
-
-	if (data->cache) {
-	    create_cache(path, translated_path, fi->flags, filedata);
-	    fi->nonseekable = 0;
-	} else {
-	    struct spawn_command_data args = {data->command, translated_path,
-		    fi->flags, filedata};
-
-	    if (data->seekable) {
-		fi->nonseekable = 0;
-		filedata->cache = pipefs_cache_create();
-		pipefs_readloop_add(data->readloop, create_command,
-			filedata->cache, &args);
-	    } else {
-		create_command(&args);
-		fi->nonseekable = 1;
-	    }
+	result = pipefs_controller_open(data->controller, path,
+		translated_path, fi, &filedata->data);
+	free(translated_path);
+	if (filedata->data) {
+	    filedata->fd = pipefs_get_original_fd(filedata->data);
 	}
     } else {
-	fd = open(fpath, fi->flags);
-	filedata->fd = fd;
-	filedata->original_fd = -1;
+	int fd = open(fpath, fi->flags);
+	if (fd < 0) {
+	    result = pipefs_error("pipefs_open");
+	} else {
+	    log_msg("  fd=%d\n", fd);
+	    filedata->fd = fd;
+	}
     }
 
-    if (fd < 0) {
+    if (result < 0) {
 	free(filedata);
-	return pipefs_error("pipefs_open open");
+    } else {
+	fi->fh = (intptr_t)(filedata);
     }
 
-    log_msg("    filedata=%08x -- fd=%d, original_fd=%d, offset=%d\n",
-	    filedata, filedata->fd, filedata->original_fd, filedata->current_offset);
-    fi->fh = (intptr_t)(filedata);
-    return 0;
+    log_msg("  result = %d\n", result);
+    return result;
 }
 
 /** Read data from an open file
@@ -536,38 +486,25 @@ int pipefs_open(const char *path, struct fuse_file_info *fi)
 int pipefs_read(const char *path, char *buf, size_t size, off_t offset,
 		struct fuse_file_info *fi)
 {
-    int retstat = 0;
-
     log_msg(" \nbb_read(path=\"%s\", buf=0x%08x, size=%d, offset=%lld, fi=0x%08x, tid=0x%08x)\n",
 	    path, buf, size, offset, fi, pthread_self());
 
-    struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
-    log_msg("    filedata=%08x -- fd=%d, original_fd=%d, offset=%d\n",
-	    filedata, filedata->fd, filedata->original_fd, filedata->current_offset);
-    if (filedata->original_fd < 0) {
-	log_msg("    pread()\n");
-	retstat = pread(filedata->fd, buf, size, offset);
+    struct pipefs_basic_filedata* filedata = (struct pipefs_basic_filedata*)(fi->fh);
+
+    int result = 0;
+    if (filedata->data) {
+	result = pipefs_controller_read(GET_DATA->controller, filedata->data,
+		buf, size, offset);
     } else {
-	if (filedata->cache) {
-	    log_msg("    cache_read()\n");
-	    retstat = pipefs_cache_read(filedata->cache, buf, size, offset);
-	} else {
-	    if (offset != filedata->current_offset) {
-		log_msg("    bad offset, expected=%d\n", filedata->current_offset);
-		return -ESPIPE;
-	    }
-	    log_msg("    read()\n");
-	    retstat = read(filedata->fd, buf, size);
-	    if (retstat > 0) {
-		filedata->current_offset += retstat;
-	    }
+	log_msg("    pread(fd=%d)\n", filedata->fd);
+	result = pread(filedata->fd, buf, size, offset);
+	if (result < 0) {
+	    result = pipefs_error("pipefs_read");
 	}
     }
-    log_msg("    read result = %d\n", retstat);
-    if (retstat < 0)
-	retstat = pipefs_error("pipefs_read read");
 
-    return retstat;
+    log_msg("  result = %d\n", result);
+    return result;
 }
 
 /** Write data to an open file
@@ -589,10 +526,9 @@ int pipefs_write(const char *path, const char *buf, size_t size, off_t offset,
 	    path, buf, size, offset, fi, pthread_self()
 	    );
 
-    struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
-    log_msg("    filedata=%08x -- fd=%d, original_fd=%d, offset=%d\n",
-	    filedata, filedata->fd, filedata->original_fd, filedata->current_offset);
-    if (filedata->original_fd < 0) {
+    struct pipefs_basic_filedata* filedata = (struct pipefs_basic_filedata*)(fi->fh);
+
+    if (!filedata->data) {
 	retstat = pwrite(filedata->fd, buf, size, offset);
 	if (retstat < 0)
 	    retstat = pipefs_error("pipefs_write pwrite");
@@ -681,33 +617,28 @@ int pipefs_flush(const char *path, struct fuse_file_info *fi)
  */
 int pipefs_release(const char *path, struct fuse_file_info *fi)
 {
-    int retstat = 0;
-
     log_msg(" \nbb_release(path=\"%s\", fi=0x%08x, tid=0x%08x)\n",
 	  path, fi, pthread_self());
 
-    struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
-    if (filedata->original_fd >= 0) {
-	close(filedata->original_fd);
-	struct pipefs_data* data = GET_DATA;
+    struct pipefs_basic_filedata* filedata = (struct pipefs_basic_filedata*)(fi->fh);
 
-	if (data->caches) {
-	    pipefs_caches_release(data->caches, path);
-	    if (data->cache_limit != 0) {
-		pipefs_caches_cleanup(data->caches, data->cache_limit);
-	    }
-	} else if (filedata->cache) {
-	    pipefs_readloop_remove(data->readloop, filedata->fd);
-	    pipefs_cache_destroy(filedata->cache);
-	} else {
-	    retstat = close(filedata->fd);
+    int result = 0;
+    if (filedata->data) {
+	result = pipefs_controller_release(GET_DATA->controller, path,
+		filedata->data);
+    }
+
+    if (result == 0) {
+	result = close(filedata->fd);
+	if (result < 0) {
+	    result = pipefs_error("pipefs_close");
 	}
     } else {
-	retstat = close(filedata->fd);
+	close(filedata->fd);
     }
-    free(filedata);
 
-    return retstat;
+    free(filedata);
+    return result;
 }
 
 /** Synchronize file contents
@@ -724,9 +655,9 @@ int pipefs_fsync(const char *path, int datasync, struct fuse_file_info *fi)
     log_msg(" \nbb_fsync(path=\"%s\", datasync=%d, fi=0x%08x, tid=0x%08x)\n",
 	    path, datasync, fi, pthread_self());
 
-    struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
+    struct pipefs_basic_filedata* filedata = (struct pipefs_basic_filedata*)(fi->fh);
 
-    if (!filedata->cache) {
+    if (!filedata->data) {
 	retstat = fsync(filedata->fd);
     }
 
@@ -886,16 +817,8 @@ void *pipefs_init(struct fuse_conn_info *conn)
     (void)conn;
 
     struct pipefs_data* data = GET_DATA;
-    data->io_thread = pipefs_io_thread_create();
-    pipefs_io_thread_start(data->io_thread);
 
-    data->readloop = pipefs_readloop_create(data->io_thread);
-    data->signal_handler = pipefs_signal_handler_create(data->io_thread);
-    pipefs_signal_handler_start(data->signal_handler);
-
-    if (data->cache) {
-	data->caches = pipefs_caches_create();
-    }
+    data->controller = pipefs_controller_create(data);
 
     if (data->pidfile) {
 	int pid = getpid();
@@ -920,17 +843,7 @@ void pipefs_destroy(void *userdata)
     struct pipefs_data* data = (struct pipefs_data*)userdata;
     log_msg(" \nbb_destroy(userdata=0x%08x)\n", userdata);
 
-    pipefs_readloop_cancel(data->readloop);
-    pipefs_signal_handler_cancel(data->signal_handler);
-    pipefs_io_thread_stop(data->io_thread);
-
-    pipefs_readloop_destroy(data->readloop);
-    pipefs_signal_handler_destroy(data->signal_handler);
-    pipefs_io_thread_destroy(data->io_thread);
-
-    if (data->caches) {
-	pipefs_caches_destroy(data->caches);
-    }
+    pipefs_controller_destroy(data->controller);
 
     if (data->pidfile) {
 	unlink(data->pidfile);
@@ -996,16 +909,14 @@ int pipefs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     CHECK_SOURCE_PATH(fpath);
     CHECK_SOURCE_PATH_CREATE(fpath);
 
-    struct pipefs_filedata* filedata = malloc(sizeof(struct pipefs_filedata));
-    memset(filedata, 0, sizeof(struct pipefs_filedata));
     int fd = creat(fpath, mode);
     if (fd < 0) {
-	free(filedata);
 	return pipefs_error("pipefs_create creat");
     }
-
+    struct pipefs_basic_filedata* filedata =
+	    malloc(sizeof(struct pipefs_basic_filedata));
+    memset(filedata, 0, sizeof(struct pipefs_basic_filedata));
     filedata->fd = fd;
-    filedata->original_fd = -1;
     fi->fh = (intptr_t)(filedata);
 
     return 0;
@@ -1030,8 +941,12 @@ int pipefs_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi)
     log_msg(" \nbb_ftruncate(path=\"%s\", offset=%lld, fi=0x%08x, tid=0x%08x)\n",
 	    path, offset, fi, pthread_self());
 
-    struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
+    struct pipefs_basic_filedata* filedata = (struct pipefs_basic_filedata*)(fi->fh);
+    if (filedata->data) {
+	return -EINVAL;
+    }
     retstat = ftruncate(filedata->fd, offset);
+
     if (retstat < 0)
 	retstat = pipefs_error("pipefs_ftruncate ftruncate");
 
@@ -1065,12 +980,11 @@ int pipefs_fgetattr(const char *path, struct stat *statbuf,
     if (!strcmp(path, "/"))
 	return pipefs_getattr(path, statbuf);
 
-    struct pipefs_filedata* filedata = (struct pipefs_filedata*)(fi->fh);
-    if (filedata->original_fd >= 0) {
-	retstat = fstat(filedata->original_fd, statbuf);
+    struct pipefs_basic_filedata* filedata = (struct pipefs_basic_filedata*)(fi->fh);
+
+    retstat = fstat(filedata->fd, statbuf);
+    if (filedata->data) {
 	correct_stat_info(statbuf);
-    } else {
-	retstat = fstat(filedata->fd, statbuf);
     }
     if (retstat < 0)
 	retstat = pipefs_error("pipefs_fgetattr fstat");

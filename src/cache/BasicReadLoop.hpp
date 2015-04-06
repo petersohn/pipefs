@@ -28,7 +28,7 @@ public:
 		caches.clear();
 	}
 
-	void add(ReadStarter readStarter, Cache& cache)
+	void add(ReadStarter readStarter, std::shared_ptr<Cache> cache)
 	{
 		auto stream = readStarter(ioService);
 		assert(stream);
@@ -66,7 +66,7 @@ private:
 
 	struct CacheData {
 		Logger& logger;
-		Cache& cache;
+		std::shared_ptr<Cache> cache;
 		std::shared_ptr<StreamDescriptor> stream;
 		char buffer[bufferSize];
 
@@ -78,7 +78,7 @@ private:
 			if (stream) {
 				logger("  remove cache for fd %d from read loop\n",
 						stream->native_handle());
-				cache.finish();
+				cache->finish();
 				boost::system::error_code errorCode;
 				stream->cancel(errorCode);
 				if (stream->is_open()) {
@@ -110,7 +110,7 @@ private:
 				bytesTransferred);
 
 		if (!errorCode && bytesTransferred > 0 && stream->is_open()) {
-			data.cache.write(data.buffer, bytesTransferred);
+			data.cache->write(data.buffer, bytesTransferred);
 			startReading(data);
 			return;
 		}

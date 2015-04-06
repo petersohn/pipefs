@@ -58,7 +58,7 @@ function start_pipefs() {
 
 function common_cleanup()
 {
-	result=
+	local result=
 	if ! run_with_tries 100 eval '[ ! -e mountpoint ] || fusermount -u mountpoint && rm -rf mountpoint && [ ! -e mountpoint ]'; then
 		echo "Failed to remove mountpoint."
 		result=1

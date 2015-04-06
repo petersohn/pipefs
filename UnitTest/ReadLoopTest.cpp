@@ -9,7 +9,7 @@ using namespace pipefs;
 
 struct ReadLoopFixture {
 	boost::asio::io_service ioService;
-	MockCache cache;
+	std::shared_ptr<MockCache> cache = std::make_shared<MockCache>();
 	BasicReadLoop<MockStreamDescriptor, MockCache, StubLogger>
 			readLoopUnderTest{ioService};
 };
@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(read_is_started)
 
 	MOCK_EXPECT(stream->doAsyncRead).once().in(seq).in(cancelSeq).in(closeSeq).
 			returns(MockStreamDescriptor::AsyncReadResult{{}, 0});
-	MOCK_EXPECT(cache.finish).at_least(1).in(seq);
+	MOCK_EXPECT(cache->finish).at_least(1).in(seq);
 	MOCK_EXPECT(stream->cancel).in(cancelSeq);
 	MOCK_EXPECT(stream->close).at_least(1).in(closeSeq);
 
@@ -53,13 +53,13 @@ BOOST_AUTO_TEST_CASE(read_returns_zero_after_read)
 
 	MOCK_EXPECT(stream->doAsyncRead).once().in(seq).
 			returns(MockStreamDescriptor::AsyncReadResult{{}, readSize1});
-	MOCK_EXPECT(cache.write).once().in(seq).with(mock::any, readSize1);
+	MOCK_EXPECT(cache->write).once().in(seq).with(mock::any, readSize1);
 	MOCK_EXPECT(stream->doAsyncRead).once().in(seq).
 			returns(MockStreamDescriptor::AsyncReadResult{{}, readSize2});
-	MOCK_EXPECT(cache.write).once().in(seq).with(mock::any, readSize2);
+	MOCK_EXPECT(cache->write).once().in(seq).with(mock::any, readSize2);
 	MOCK_EXPECT(stream->doAsyncRead).once().in(seq).
 			returns(MockStreamDescriptor::AsyncReadResult{{}, 0});
-	MOCK_EXPECT(cache.finish).at_least(1).in(seq, cancelSeq, closeSeq);
+	MOCK_EXPECT(cache->finish).at_least(1).in(seq, cancelSeq, closeSeq);
 
 	MOCK_EXPECT(stream->cancel).in(cancelSeq);
 	MOCK_EXPECT(stream->close).at_least(1).in(closeSeq);
@@ -85,12 +85,12 @@ BOOST_AUTO_TEST_CASE(read_returns_error_after_read)
 
 	MOCK_EXPECT(stream->doAsyncRead).once().in(seq).
 			returns(MockStreamDescriptor::AsyncReadResult{{}, readSize1});
-	MOCK_EXPECT(cache.write).once().in(seq).with(mock::any, readSize1);
+	MOCK_EXPECT(cache->write).once().in(seq).with(mock::any, readSize1);
 	MOCK_EXPECT(stream->doAsyncRead).once().in(seq).
 			returns(MockStreamDescriptor::AsyncReadResult{
 					boost::asio::error::operation_aborted, 1});
 	// TODO maybe it is not good enough to finish here?
-	MOCK_EXPECT(cache.finish).at_least(1).in(seq, cancelSeq, closeSeq);
+	MOCK_EXPECT(cache->finish).at_least(1).in(seq, cancelSeq, closeSeq);
 
 	MOCK_EXPECT(stream->cancel).in(cancelSeq);
 	MOCK_EXPECT(stream->close).at_least(1).in(closeSeq);

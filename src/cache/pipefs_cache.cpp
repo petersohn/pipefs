@@ -1,148 +1,85 @@
 #include "pipefs_cache.h"
 #include "log.h"
 
-#include "Cache.hpp"
-#include "Caches.hpp"
-#include "ReadLoop.hpp"
-#include "SignalHandler.hpp"
-#include "IOThread.hpp"
+#include "Controller.hpp"
+#include "FileData.hpp"
+#include "data.h"
 
 #include <boost/exception/all.hpp>
+#include <boost/system/system_error.hpp>
 #include <memory>
 
 extern "C" {
 
 
-#define TRY(expr) try { expr; } catch (std::exception& e) { \
-	log_msg("%s\n", boost::diagnostic_information(e).c_str()); \
-	throw; \
+#define TRY(expr) try { expr; } \
+        catch (std::exception& e) { \
+        log_msg("%s\n", boost::diagnostic_information(e).c_str()); \
+        throw; \
 }
 
+#define TRY_SYSTEM_ERROR(name, expr) TRY(try { expr; } \
+        catch (boost::system::system_error& e) { \
+                if (e.code().category() == boost::system::system_category()) {\
+                        log_error(name, e.code().value()); \
+                        return -e.code().value(); \
+                } else { throw; }})
 
-struct pipefs_cache* pipefs_cache_create()
+void log_error(const char *str, int error)
 {
-	TRY(return reinterpret_cast<pipefs_cache*>(new pipefs::Cache{}));
+    log_msg("    ERROR %s: %s\n", str, strerror(error));
 }
 
-void pipefs_cache_destroy(struct pipefs_cache* cache)
+int pipefs_get_original_fd(struct pipefs_filedata* data)
 {
-	TRY(delete reinterpret_cast<const pipefs::Cache*>(cache));
+        return reinterpret_cast<pipefs::FileData*>(data)->originalFd;
 }
 
-int pipefs_cache_read(const struct pipefs_cache* cache, void* buf,
-		size_t length, size_t position)
+struct pipefs_controller* pipefs_controller_create(
+                const struct pipefs_data* data)
 {
-	TRY(return reinterpret_cast<const pipefs::Cache*>(cache)->read(buf, length, position));
+        bool seekable = data->seekable;
+        bool useCache = data->cache;
+        TRY(return reinterpret_cast<pipefs_controller*>(
+                new pipefs::Controller{data->command, seekable, useCache,
+                data->cache_limit}));
 }
 
-
-struct pipefs_caches* pipefs_caches_create()
+void pipefs_controller_destroy(struct pipefs_controller* controller)
 {
-	TRY(return reinterpret_cast<pipefs_caches*>(new pipefs::Caches{}));
+        TRY(delete reinterpret_cast<const pipefs::Controller*>(controller));
 }
 
-void pipefs_caches_destroy(struct pipefs_caches* caches)
+int pipefs_controller_open(pipefs_controller* controller, const char* filename,
+        const char* translatedPath, struct fuse_file_info* fi,
+        pipefs_filedata** result)
 {
-	TRY(delete reinterpret_cast<pipefs::Caches*>(caches));
+        TRY_SYSTEM_ERROR("pipefs_open",
+            pipefs::FileData* fileData =
+            reinterpret_cast<pipefs::Controller*>(controller)->open(
+                            filename, translatedPath, *fi);
+            *result = reinterpret_cast<pipefs_filedata*>(fileData);
+        );
+        return 0;
 }
 
-int pipefs_caches_get(struct pipefs_caches* caches, const char* key,
-		struct pipefs_cache** cache)
+int pipefs_controller_read(pipefs_controller* controller,
+                struct pipefs_filedata* data, void* buffer, size_t size, off_t offset)
 {
-	TRY(
-		auto result = reinterpret_cast<pipefs::Caches*>(caches)->get(key);
-		if (cache) {
-			*cache = reinterpret_cast<pipefs_cache*>(&result.first);
-		}
-		return result.second;
-	)
+        TRY_SYSTEM_ERROR("pipefs_read",
+            return reinterpret_cast<pipefs::Controller*>(controller)->read(
+                    reinterpret_cast<pipefs::FileData*>(data), buffer, size, offset);
+        );
 }
 
-void pipefs_caches_release(struct pipefs_caches* caches, const char* key)
+int pipefs_controller_release(pipefs_controller* controller,
+        const char* filename, struct pipefs_filedata* data)
 {
-	TRY(reinterpret_cast<pipefs::Caches*>(caches)->release(key));
-}
-
-void pipefs_caches_cleanup(pipefs_caches* caches, size_t target_size)
-{
-	TRY(reinterpret_cast<pipefs::Caches*>(caches)->cleanup(target_size));
-}
-
-struct pipefs_io_thread* pipefs_io_thread_create()
-{
-	TRY(return reinterpret_cast<pipefs_io_thread*>(new pipefs::IOThread{}));
-}
-
-void pipefs_io_thread_destroy(struct pipefs_io_thread* io_thread)
-{
-	TRY(delete reinterpret_cast<pipefs::IOThread*>(io_thread));
-}
-
-void pipefs_io_thread_start(struct pipefs_io_thread* io_thread)
-{
-	TRY(reinterpret_cast<pipefs::IOThread*>(io_thread)->start());
-}
-
-void pipefs_io_thread_stop(struct pipefs_io_thread* io_thread)
-{
-	TRY(reinterpret_cast<pipefs::IOThread*>(io_thread)->stop());
-}
-
-
-struct pipefs_readloop* pipefs_readloop_create(struct pipefs_io_thread* io_thread)
-{
-	TRY(return reinterpret_cast<pipefs_readloop*>(new pipefs::ReadLoop{
-			reinterpret_cast<pipefs::IOThread*>(io_thread)->getIoService()}));
-}
-
-void pipefs_readloop_destroy(struct pipefs_readloop* readloop)
-{
-	TRY(delete reinterpret_cast<pipefs::ReadLoop*>(readloop));
-}
-
-void pipefs_readloop_cancel(struct pipefs_readloop* readloop)
-{
-	TRY(reinterpret_cast<pipefs::ReadLoop*>(readloop)->cancel());
-}
-
-void pipefs_readloop_add(struct pipefs_readloop* readloop,
-		read_starter starter, struct pipefs_cache* cache, void* data)
-{
-	pipefs::ReadLoop::ReadStarter readStarter = [starter, data](
-			boost::asio::io_service& ioService)
-		{
-			return std::make_shared<boost::asio::posix::stream_descriptor>(
-					ioService, starter(data));
-		};
-	TRY(reinterpret_cast<pipefs::ReadLoop*>(readloop)->add(readStarter,
-			*reinterpret_cast<pipefs::Cache*>(cache)));
-}
-
-void pipefs_readloop_remove(struct pipefs_readloop* readloop, int fd)
-{
-	TRY(reinterpret_cast<pipefs::ReadLoop*>(readloop)->remove(fd));
-}
-
-
-struct pipefs_signal_handler* pipefs_signal_handler_create(struct pipefs_io_thread* io_thread)
-{
-	TRY(return reinterpret_cast<pipefs_signal_handler*>(new pipefs::SignalHandler{
-			reinterpret_cast<pipefs::IOThread*>(io_thread)->getIoService()}));
-}
-
-void pipefs_signal_handler_destroy(struct pipefs_signal_handler* signal_handler)
-{
-	TRY(delete reinterpret_cast<pipefs::SignalHandler*>(signal_handler));
-}
-
-void pipefs_signal_handler_cancel(struct pipefs_signal_handler* signal_handler)
-{
-	TRY(reinterpret_cast<pipefs::SignalHandler*>(signal_handler)->cancel());
-}
-
-void pipefs_signal_handler_start(struct pipefs_signal_handler* signal_handler)
-{
-	TRY(reinterpret_cast<pipefs::SignalHandler*>(signal_handler)->start());
+        TRY_SYSTEM_ERROR("pipefs_release",
+            reinterpret_cast<pipefs::Controller*>(controller)->release(
+                    filename, reinterpret_cast<pipefs::FileData*>(data));
+        );
+        return 0;
 }
 
 }

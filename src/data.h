@@ -20,18 +20,14 @@ struct pipefs_data {
     int cache;
     size_t cache_limit;
 
-    struct pipefs_io_thread* io_thread;
-    struct pipefs_readloop* readloop;
-    struct pipefs_signal_handler* signal_handler;
-    struct pipefs_caches* caches;
+    struct pipefs_controller* controller;
 };
 
-struct pipefs_filedata {
-    int original_fd;
+struct pipefs_filedata;
+
+struct pipefs_basic_filedata {
     int fd;
-    pid_t pid;
-    off_t current_offset;
-    struct pipefs_cache* cache;
+    struct pipefs_filedata* data;
 };
 
 #ifdef __cplusplus
