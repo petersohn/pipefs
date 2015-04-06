@@ -8,8 +8,8 @@ void Cache::write(const void* buf, std::size_t length)
 {
 	log_msg("Cache::write(this=%p, length=%lu)", this, length);
 
-	std::unique_lock<std::mutex> lock{mutex};
 	{
+		std::unique_lock<std::mutex> lock{mutex};
 		log_msg("Cache::wirite() lock got; size = %lu\n", data.size());
 		std::size_t position = data.size();
 		data.resize(position + length);

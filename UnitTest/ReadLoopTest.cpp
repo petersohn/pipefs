@@ -37,6 +37,7 @@ BOOST_AUTO_TEST_CASE(read_is_started)
 			return stream;
 		}, cache);
 
+	ioService.run();
 }
 
 BOOST_AUTO_TEST_CASE(read_returns_zero_after_read)

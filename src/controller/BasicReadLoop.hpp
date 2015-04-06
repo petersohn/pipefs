@@ -24,8 +24,10 @@ public:
 	void cancel()
 	{
 		logger("ReadLoop::cancel()\n");
-		std::unique_lock<std::mutex> lock{mutex};
-		caches.clear();
+		ioService.post([this]() {
+			logger("ReadLoop::doCancel()\n");
+			caches.clear();
+		});
 	}
 
 	void add(ReadStarter readStarter, std::shared_ptr<Cache> cache)
@@ -35,26 +37,30 @@ public:
 		auto fd = stream->native_handle();
 		logger("ReadLoop::add(%d)\n", fd);
 
-		std::unique_lock<std::mutex> lock{mutex};
-		auto emplaceResult = caches.emplace(fd,
-				CacheData{logger, cache, stream, ""});
+		ioService.post([this, cache, stream, fd]() {
+			logger("ReadLoop::doAdd(%d)\n", fd);
+			auto emplaceResult = caches.emplace(fd,
+					CacheData{logger, cache, stream, ""});
 
-		if (emplaceResult.second) {
-			logger("  added to read loop\n");
-			auto& data = emplaceResult.first->second;
-			startReading(data);
-		} else {
-			logger("  not added to read loop\n");
-		}
+			if (emplaceResult.second) {
+				logger("  added to read loop\n");
+				auto& data = emplaceResult.first->second;
+				startReading(data.stream, data.cache, data.buffer);
+			} else {
+				logger("  not added to read loop\n");
+			}
+		});
 	}
 
 	void remove(int fd)
 	{
 		logger("ReadLoop::remove(%d)\n", fd);
 
-		std::unique_lock<std::mutex> lock{mutex};
-		auto result = caches.erase(fd);
-		logger("  result = %lu\n", result);
+		ioService.post([this, fd]() {
+			logger("ReadLoop::doRemove(%d)\n", fd);
+			auto result = caches.erase(fd);
+			logger("  result = %lu\n", result);
+		});
 	}
 
 private:
@@ -62,7 +68,6 @@ private:
 
 	boost::asio::io_service& ioService;
 	Logger logger;
-	std::mutex mutex;
 
 	struct CacheData {
 		Logger& logger;
@@ -91,18 +96,24 @@ private:
 
 	std::map<int, CacheData> caches;
 
-	void startReading(CacheData& data)
+	void startReading(
+			std::shared_ptr<StreamDescriptor> stream,
+			std::shared_ptr<Cache> cache,
+			char* buffer)
 	{
-		logger("ReadLoop::startReading(%d)\n", data.stream->native_handle());
+		logger("ReadLoop::startReading(%d)\n", stream->native_handle());
 		using std::placeholders::_1;
 		using std::placeholders::_2;
-		data.stream->async_read_some(
-				boost::asio::buffer<char, bufferSize>(data.buffer),
-				std::bind(&BasicReadLoop::readFinished, this, std::ref(data),
-					data.stream, _1, _2));
+		stream->async_read_some(
+				boost::asio::buffer(buffer, bufferSize),
+				std::bind(&BasicReadLoop::readFinished, this, stream, cache,
+						buffer, _1, _2));
 	}
 
-	void readFinished(CacheData& data, std::shared_ptr<StreamDescriptor> stream,
+	void readFinished(
+			std::shared_ptr<StreamDescriptor> stream,
+			std::shared_ptr<Cache> cache,
+			char* buffer,
 			boost::system::error_code errorCode, std::size_t bytesTransferred)
 	{
 		logger("ReadLoop::readFinished(fd=%d, error=%s, bytes=%lu)\n",
@@ -110,8 +121,8 @@ private:
 				bytesTransferred);
 
 		if (!errorCode && bytesTransferred > 0 && stream->is_open()) {
-			data.cache->write(data.buffer, bytesTransferred);
-			startReading(data);
+			cache->write(buffer, bytesTransferred);
+			startReading(stream, cache, buffer);
 			return;
 		}
 
