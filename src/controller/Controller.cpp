@@ -9,10 +9,14 @@
 namespace pipefs {
 
 std::shared_ptr<boost::asio::posix::stream_descriptor> Controller::createCommand(
-        FileData& fileData, const char* translatedPath, int flags,
+        FileData& fileData, std::string translatedPath, int flags,
         boost::asio::io_service& ioService)
 {
-    spawnCommand(command, translatedPath, flags, fileData);
+    log_msg("Starting command. fileData = %08x\n", &fileData);
+    spawnCommand(command, translatedPath.c_str(), flags, fileData);
+    log_msg("    filedata=%08x -- fd=%d, original_fd=%d, offset=%d\n",
+	    &fileData, fileData.fd, fileData.originalFd,
+	    fileData.currentOffset);
     return std::make_shared<boost::asio::posix::stream_descriptor>(
             ioService, fileData.fd);
 }
@@ -24,7 +28,7 @@ Controller::~Controller()
     ioThread.stop();
 }
 
-void Controller::createCache(const char* key, const char* translatedPath,
+void Controller::createCache(const char* key, const std::string& translatedPath,
         int flags, FileData& fileData)
 {
     auto cacheResult = caches.get(key);
@@ -39,7 +43,7 @@ void Controller::createCache(const char* key, const char* translatedPath,
     }
 }
 
-FileData* Controller::open(const char* filename, const char* translatedPath,
+FileData* Controller::open(const char* filename, const std::string& translatedPath,
         struct fuse_file_info& fi)
 {
     if (fi.flags & (O_WRONLY | O_RDWR | O_CREAT)) {
@@ -63,7 +67,7 @@ FileData* Controller::open(const char* filename, const char* translatedPath,
                     std::ref(*data), translatedPath, fi.flags, _1),
 		    data->cache);
         } else {
-            spawnCommand(command, translatedPath, fi.flags, *data);
+            spawnCommand(command, translatedPath.c_str(), fi.flags, *data);
             fi.nonseekable = 1;
         }
     }

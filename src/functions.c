@@ -445,9 +445,6 @@ int pipefs_open(const char *path, struct fuse_file_info *fi)
 	result = pipefs_controller_open(data->controller, path,
 		translated_path, fi, &filedata->data);
 	free(translated_path);
-	if (filedata->data) {
-	    filedata->fd = pipefs_get_original_fd(filedata->data);
-	}
     } else {
 	int fd = open(fpath, fi->flags);
 	if (fd < 0) {
@@ -625,17 +622,14 @@ int pipefs_release(const char *path, struct fuse_file_info *fi)
 
     int result = 0;
     if (filedata->data) {
+	close(pipefs_get_original_fd(filedata->data));
 	result = pipefs_controller_release(GET_DATA->controller, path,
 		filedata->data);
-    }
-
-    if (result == 0) {
+    } else {
 	result = close(filedata->fd);
 	if (result < 0) {
 	    result = pipefs_error("pipefs_close");
 	}
-    } else {
-	close(filedata->fd);
     }
 
     free(filedata);
@@ -983,9 +977,11 @@ int pipefs_fgetattr(const char *path, struct stat *statbuf,
 
     struct pipefs_basic_filedata* filedata = (struct pipefs_basic_filedata*)(fi->fh);
 
-    retstat = fstat(filedata->fd, statbuf);
     if (filedata->data) {
+	retstat = fstat(pipefs_get_original_fd(filedata->data), statbuf);
 	correct_stat_info(statbuf);
+    } else {
+	retstat = fstat(filedata->fd, statbuf);
     }
     if (retstat < 0)
 	retstat = pipefs_error("pipefs_fgetattr fstat");
