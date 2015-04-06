@@ -12,6 +12,7 @@
 #include <string>
 
 struct fuse_file_info;
+struct pipefs_data;
 
 namespace pipefs {
 
@@ -19,15 +20,7 @@ struct FileData;
 
 class Controller {
 public:
-	Controller(const char* command, bool seekable, bool useCache,
-			std::size_t cacheSize):
-			signalHandler{ioThread.getIoService()},
-			readLoop{ioThread.getIoService(), 0},
-			command(command), seekable(seekable), useCache(useCache),
-			cacheSize(cacheSize)
-	{
-		ioThread.start();
-	}
+	Controller(const pipefs_data& data);
 	Controller(const Controller&) = delete;
 	Controller& operator=(const Controller&) = delete;
 	~Controller();

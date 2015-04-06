@@ -89,3 +89,5 @@ function get_common_test_cases()
 	echo "testcases/file_descriptors_are_not_leaked.sh"
 }
 
+custom_options=()
+

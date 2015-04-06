@@ -2,11 +2,21 @@
 #include "FileData.hpp"
 #include "SystemError.hpp"
 #include "log.h"
+#include "data.h"
 #include "SpawnCommand.hpp"
 
 #include <fuse.h>
 
 namespace pipefs {
+
+Controller::Controller(const pipefs_data& data):
+	ioThread{}, caches{}, signalHandler{ioThread.getIoService()},
+	readLoop{ioThread.getIoService(), data.process_limit},
+	command(data.command), seekable(data.seekable),
+	useCache(data.cache), cacheSize(data.cache_limit)
+{
+    ioThread.start();
+}
 
 std::shared_ptr<boost::asio::posix::stream_descriptor> Controller::createCommand(
         FileData& fileData, std::string translatedPath, int flags,

@@ -16,6 +16,7 @@ static struct option options[] = {
     {"cache-limit",   required_argument, NULL, 'L'},
     {"log-file",      required_argument, NULL, 'l'},
     {"pidfile",       required_argument, NULL, 'p'},
+    {"process-limit", required_argument, NULL, 'P'},
     {"root-dir",      required_argument, NULL, 'r'},
     {"seekable",      no_argument,       NULL, 'k'},
     {"source-suffix", required_argument, NULL, 's'},
@@ -74,7 +75,7 @@ char** parse_arguments(int argc, char* argv[], struct pipefs_data* data,
     int option;
     optind = 0;
     while ((option =
-            getopt_long(argc, argv, "hc:C:l:kp:s:t:", options, NULL)) >= 0) {
+            getopt_long(argc, argv, "hc:C:l:kp:P:s:t:", options, NULL)) >= 0) {
         switch (option) {
         case 'h':
             print_usage(argv[0]);
@@ -96,6 +97,9 @@ char** parse_arguments(int argc, char* argv[], struct pipefs_data* data,
             break;
         case 'p':
             data->pidfile = optarg;
+            break;
+        case 'P':
+            data->process_limit = atoi(optarg);
             break;
         case 'r':
             data->rootdir = optarg;

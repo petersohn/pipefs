@@ -17,6 +17,7 @@ struct pipefs_data {
     int seekable;
     int cache;
     size_t cache_limit;
+    size_t process_limit;
 
     struct pipefs_controller* controller;
 };
