@@ -13,7 +13,7 @@ function test_run()
     local number_of_processes=20
     local expected_number_of_processes=10
     for ((i=0; i<number_of_processes; ++i)); do
-		echo "This is file $i" >rootdir/filename_${i}.1
+	echo "This is file $i" >rootdir/filename_${i}.1
     done
 
     for ((i=0; i<number_of_processes; ++i)); do
