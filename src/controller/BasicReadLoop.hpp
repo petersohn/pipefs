@@ -7,6 +7,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <deque>
 
 #include "log.h"
 
@@ -18,8 +19,11 @@ public:
 	using ReadStarter = std::function<std::shared_ptr<StreamDescriptor>(
 			boost::asio::io_service&)>;
 
-	BasicReadLoop(boost::asio::io_service& ioService, Logger logger = Logger{}):
-			ioService(ioService), logger(std::move(logger)) {}
+	BasicReadLoop(boost::asio::io_service& ioService, std::size_t processLimit,
+			Logger logger = Logger{}):
+			processLimit(processLimit),
+			ioService(ioService),
+			logger(std::move(logger)) {}
 
 	void cancel()
 	{
@@ -32,22 +36,14 @@ public:
 
 	void add(ReadStarter readStarter, std::shared_ptr<Cache> cache)
 	{
-		auto stream = readStarter(ioService);
-		assert(stream);
-		auto fd = stream->native_handle();
-		logger("ReadLoop::add(%d)\n", fd);
-
-		ioService.post([this, cache, stream, fd]() {
-			logger("ReadLoop::doAdd(%d)\n", fd);
-			auto emplaceResult = caches.emplace(fd,
-					CacheData{logger, cache, stream, ""});
-
-			if (emplaceResult.second) {
-				logger("  added to read loop\n");
-				auto& data = emplaceResult.first->second;
-				startReading(data.stream, data.cache, data.buffer);
+		logger("ReadLoop::add()\n");
+		QueueData queueData{readStarter, cache};
+		ioService.post([this, queueData]() {
+			if (processLimit == 0 || caches.size() < processLimit) {
+				doAdd(queueData);
 			} else {
-				logger("  not added to read loop\n");
+				logger("  Put task to queue");
+				queue.push_back(queueData);
 			}
 		});
 	}
@@ -59,13 +55,19 @@ public:
 		ioService.post([this, fd]() {
 			logger("ReadLoop::doRemove(%d)\n", fd);
 			auto result = caches.erase(fd);
-			logger("  result = %lu\n", result);
+
+			while (!queue.empty() && caches.size() < processLimit) {
+				auto queueData = queue.front();
+				queue.pop_front();
+				doAdd(queueData);
+			}
 		});
 	}
 
 private:
 	constexpr static std::size_t bufferSize = 65536;
 
+	std::size_t processLimit;
 	boost::asio::io_service& ioService;
 	Logger logger;
 
@@ -75,8 +77,14 @@ private:
 		std::shared_ptr<StreamDescriptor> stream;
 		char buffer[bufferSize];
 
-		CacheData(CacheData&&) = default;
-		CacheData& operator=(CacheData&&) = default;
+		CacheData(Logger& logger, const std::shared_ptr<Cache>& cache,
+				const std::shared_ptr<StreamDescriptor>& stream):
+			logger(logger), cache(cache), stream(stream)
+		{}
+		CacheData(const CacheData&) = delete;
+		CacheData& operator=(const CacheData&) = delete;
+		CacheData(CacheData&&) = delete;
+		CacheData& operator=(CacheData&&) = delete;
 
 		~CacheData()
 		{
@@ -94,7 +102,31 @@ private:
 		}
 	};
 
-	std::map<int, CacheData> caches;
+	struct QueueData {
+		ReadStarter readStarter;
+		std::shared_ptr<Cache> cache;
+	};
+
+	std::map<int, std::unique_ptr<CacheData>> caches;
+	std::deque<QueueData> queue;
+
+	void doAdd(const QueueData& queueData) {
+		auto stream = queueData.readStarter(ioService);
+		assert(stream);
+		auto fd = stream->native_handle();
+
+		logger("ReadLoop::doAdd(%d)\n", fd);
+		auto emplaceResult = caches.emplace(fd,
+				std::make_unique<CacheData>(logger, queueData.cache, stream));
+
+		if (emplaceResult.second) {
+			logger("  added to read loop\n");
+			auto& data = emplaceResult.first->second;
+			startReading(data->stream, data->cache, data->buffer);
+		} else {
+			logger("  not added to read loop\n");
+		}
+	}
 
 	void startReading(
 			std::shared_ptr<StreamDescriptor> stream,

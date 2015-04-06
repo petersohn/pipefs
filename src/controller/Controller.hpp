@@ -20,6 +20,8 @@ class Controller {
 public:
 	Controller(const char* command, bool seekable, bool useCache,
 			std::size_t cacheSize):
+			signalHandler{ioThread.getIoService()},
+			readLoop{ioThread.getIoService(), 0},
 			command(command), seekable(seekable), useCache(useCache),
 			cacheSize(cacheSize)
 	{
@@ -36,8 +38,8 @@ public:
 private:
 	IOThread ioThread;
 	Caches caches;
-	SignalHandler signalHandler{ioThread.getIoService()};
-	ReadLoop readLoop{ioThread.getIoService()};
+	SignalHandler signalHandler;
+	ReadLoop readLoop;
 
 	const char* command;
 	bool seekable;
