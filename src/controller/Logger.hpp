@@ -8,11 +8,11 @@
 namespace pipefs {
 
 struct Logger {
-	template <typename... Args>
-	void operator()(Args&&... args)
-	{
-		log_msg(std::forward<Args>(args)...);
-	}
+    template <typename... Args>
+    void operator()(Args&&... args)
+    {
+        log_msg(std::forward<Args>(args)...);
+    }
 };
 
 }

@@ -10,10 +10,10 @@
 namespace pipefs {
 
 Controller::Controller(const pipefs_data& data):
-	ioThread{}, caches{}, signalHandler{ioThread.getIoService()},
-	readLoop{ioThread.getIoService(), data.process_limit},
-	command(data.command), seekable(data.seekable),
-	useCache(data.cache), cacheSize(data.cache_limit)
+    ioThread{}, caches{}, signalHandler{ioThread.getIoService()},
+    readLoop{ioThread.getIoService(), data.process_limit},
+    command(data.command), seekable(data.seekable),
+    useCache(data.cache), cacheSize(data.cache_limit)
 {
     ioThread.start();
 }
@@ -25,8 +25,8 @@ std::shared_ptr<boost::asio::posix::stream_descriptor> Controller::createCommand
     log_msg("Starting command. fileData = %08x\n", &fileData);
     spawnCommand(command, translatedPath.c_str(), flags, fileData);
     log_msg("    filedata=%08x -- fd=%d, original_fd=%d, offset=%d\n",
-	    &fileData, fileData.fd, fileData.originalFd,
-	    fileData.currentOffset);
+        &fileData, fileData.fd, fileData.originalFd,
+        fileData.currentOffset);
     return std::make_shared<boost::asio::posix::stream_descriptor>(
             ioService, fileData.fd);
 }
@@ -75,7 +75,7 @@ FileData* Controller::open(const char* filename, const std::string& translatedPa
             using std::placeholders::_1;
             readLoop.add(std::bind(&Controller::createCommand, this,
                     std::ref(*data), translatedPath, fi.flags, _1),
-		    data->cache);
+            data->cache);
         } else {
             spawnCommand(command, translatedPath.c_str(), fi.flags, *data);
             fi.nonseekable = 1;
@@ -83,33 +83,33 @@ FileData* Controller::open(const char* filename, const std::string& translatedPa
     }
 
     log_msg("    filedata=%08x -- fd=%d, original_fd=%d, offset=%d\n",
-	    data.get(), data->fd, data->originalFd, data->currentOffset);
+        data.get(), data->fd, data->originalFd, data->currentOffset);
     return data.release();
 }
 
 int Controller::read(FileData* data, void* buffer, std::size_t size, off_t offset)
 {
     log_msg("    filedata=%08x -- fd=%d, original_fd=%d, offset=%d\n",
-	    data, data->fd, data->originalFd, data->currentOffset);
+        data, data->fd, data->originalFd, data->currentOffset);
 
     if (data->cache) {
-	log_msg("    cache_read()\n");
+    log_msg("    cache_read()\n");
     return data->cache->read(buffer, size, offset);
     } else {
-	if (offset != data->currentOffset) {
-	log_msg("    bad offset, expected=%d\n", data->currentOffset);
-	throwSystemError(ESPIPE);
-	}
+    if (offset != data->currentOffset) {
+    log_msg("    bad offset, expected=%d\n", data->currentOffset);
+    throwSystemError(ESPIPE);
+    }
 
     log_msg("    read()\n");
     int result = ::read(data->fd, buffer, size);
 
     if (result < 0) {
-	throwError();
+    throwError();
     }
 
     if (result > 0) {
-	data->currentOffset += result;
+    data->currentOffset += result;
     }
     return result;
     }
@@ -120,17 +120,17 @@ void Controller::release(const char* filename, FileData* data)
     std::unique_ptr<FileData> fileData{data};
 
     if (useCache) {
-	caches.release(filename);
-	if (cacheSize > 0) {
-	    caches.cleanup(cacheSize);
-	}
+    caches.release(filename);
+    if (cacheSize > 0) {
+        caches.cleanup(cacheSize);
+    }
     } else if (seekable) {
-	readLoop.remove(fileData->fd);
+    readLoop.remove(fileData->fd);
     } else {
-	int result = ::close(fileData->fd);
-	if (result < 0) {
-	    throwError();
-	}
+    int result = ::close(fileData->fd);
+    if (result < 0) {
+        throwError();
+    }
     }
 }
 

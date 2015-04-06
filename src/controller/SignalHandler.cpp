@@ -11,24 +11,24 @@ SignalHandler::SignalHandler(boost::asio::io_service& ioService): ioService(ioSe
 
 void SignalHandler::start()
 {
-	wait();
+    wait();
 }
 
 void SignalHandler::cancel()
 {
-	signalSet.cancel();
+    signalSet.cancel();
 }
 
 void SignalHandler::wait()
 {
-	signalSet.async_wait([this](boost::system::error_code errorCode,
-				int /*signal*/)
-		{
-			if (!errorCode) {
-				::wait(NULL);
-				wait();
-			}
-		});
+    signalSet.async_wait([this](boost::system::error_code errorCode,
+                int /*signal*/)
+        {
+            if (!errorCode) {
+                ::wait(NULL);
+                wait();
+            }
+        });
 }
 
 }

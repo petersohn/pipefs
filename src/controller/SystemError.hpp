@@ -9,14 +9,14 @@ namespace pipefs {
 inline
 void throwSystemError(int errorCode)
 {
-	using namespace boost::system;
-	throw system_error{errorCode, system_category()};
+    using namespace boost::system;
+    throw system_error{errorCode, system_category()};
 }
 
 inline
 void throwError()
 {
-	throwSystemError(errno);
+    throwSystemError(errno);
 }
 
 };

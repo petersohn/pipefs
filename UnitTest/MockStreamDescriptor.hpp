@@ -10,42 +10,42 @@
 #include <functional>
 
 #define METHOD_WITH_ERROR(name) \
-	void name() \
-	{ \
-		boost::system::error_code errorCode; \
-		name(errorCode); \
-		if (errorCode) { \
-			throw boost::system::system_error{errorCode}; \
-		} \
-	}
+    void name() \
+    { \
+        boost::system::error_code errorCode; \
+        name(errorCode); \
+        if (errorCode) { \
+            throw boost::system::system_error{errorCode}; \
+        } \
+    }
 
 namespace pipefs {
 
 struct MockStreamDescriptor {
-	using native_handle_type = int;
+    using native_handle_type = int;
 
-	MockStreamDescriptor(boost::asio::io_service& ioService):
-			ioService(ioService) {}
+    MockStreamDescriptor(boost::asio::io_service& ioService):
+            ioService(ioService) {}
 
-	MOCK_METHOD(cancel, 1, void(boost::system::error_code&));
-	METHOD_WITH_ERROR(cancel)
+    MOCK_METHOD(cancel, 1, void(boost::system::error_code&));
+    METHOD_WITH_ERROR(cancel)
 
-	MOCK_METHOD(close, 1, void(boost::system::error_code&));
-	METHOD_WITH_ERROR(close)
+    MOCK_METHOD(close, 1, void(boost::system::error_code&));
+    METHOD_WITH_ERROR(close)
 
-	using AsyncReadResult = std::pair<boost::system::error_code, std::size_t>;
-	MOCK_METHOD(doAsyncRead, 0, AsyncReadResult());
-	template <typename Buffer, typename Callback>
-	void async_read_some(const Buffer&, const Callback& callback)
-	{
-		auto result = doAsyncRead();
-		ioService.post(std::bind(callback, result.first, result.second));
-	}
+    using AsyncReadResult = std::pair<boost::system::error_code, std::size_t>;
+    MOCK_METHOD(doAsyncRead, 0, AsyncReadResult());
+    template <typename Buffer, typename Callback>
+    void async_read_some(const Buffer&, const Callback& callback)
+    {
+        auto result = doAsyncRead();
+        ioService.post(std::bind(callback, result.first, result.second));
+    }
 
-	MOCK_METHOD(native_handle, 0, native_handle_type());
-	MOCK_METHOD(is_open, 0, bool());
+    MOCK_METHOD(native_handle, 0, native_handle_type());
+    MOCK_METHOD(is_open, 0, bool());
 
-	boost::asio::io_service& ioService;
+    boost::asio::io_service& ioService;
 };
 
 }

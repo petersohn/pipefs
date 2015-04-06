@@ -7,14 +7,14 @@ namespace pipefs {
 
 class FakeTimeUtil {
 public:
-	using time_point = std::chrono::steady_clock::time_point;
+    using time_point = std::chrono::steady_clock::time_point;
 
-	time_point now() {
-		clock += std::chrono::seconds{1};
-		return clock;
-	}
+    time_point now() {
+        clock += std::chrono::seconds{1};
+        return clock;
+    }
 private:
-	time_point clock = std::chrono::steady_clock::now();
+    time_point clock = std::chrono::steady_clock::now();
 };
 
 }

@@ -13,7 +13,7 @@ struct FileData {
     int fd = 0;
     pid_t pid = 0;
     off_t currentOffset = 0;
-	std::shared_ptr<Cache> cache;
+    std::shared_ptr<Cache> cache;
 };
 
 };

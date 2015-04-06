@@ -4,10 +4,10 @@
 namespace pipefs {
 
 struct StubLogger {
-	template <typename... Args>
-	void operator()(Args&&... /*args*/)
-	{
-	}
+    template <typename... Args>
+    void operator()(Args&&... /*args*/)
+    {
+    }
 };
 
 }

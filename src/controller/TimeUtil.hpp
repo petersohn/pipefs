@@ -6,11 +6,11 @@
 namespace pipefs {
 
 struct TimeUtil {
-	using time_point = std::chrono::steady_clock::time_point;
+    using time_point = std::chrono::steady_clock::time_point;
 
-	time_point now() {
-		return std::chrono::steady_clock::now();
-	}
+    time_point now() {
+        return std::chrono::steady_clock::now();
+    }
 };
 
 }

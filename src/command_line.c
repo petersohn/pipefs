@@ -30,47 +30,47 @@ size_t parse_size(const char* input)
     char type[2] = "b";
     int scanf_result = sscanf(input, "%u%[bBkKmMgG]", &parsed_result, type);
     if (scanf_result == EOF) {
-	perror("parse_size");
-	exit(1);
+    perror("parse_size");
+    exit(1);
     }
 
     if (scanf_result == 0) {
-	fprintf(stderr, "Error in size input.\n");
-	exit(1);
+    fprintf(stderr, "Error in size input.\n");
+    exit(1);
     }
 
     size_t result = parsed_result;
     switch (type[0]) {
-	case 'b':
-	case 'B':
-	    break;
+    case 'b':
+    case 'B':
+        break;
 
-	case 'g':
-	    result *= 1024;
-	    // fallthrough
-	case 'm':
-	    result *= 1024;
-	    // fallthrough
-	case 'k':
-	    result *= 1024;
-	    break;
+    case 'g':
+        result *= 1024;
+        // fallthrough
+    case 'm':
+        result *= 1024;
+        // fallthrough
+    case 'k':
+        result *= 1024;
+        break;
 
-	case 'G':
-	    result *= 1000;
-	    // fallthrough
-	case 'M':
-	    result *= 1000;
-	    // fallthrough
-	case 'K':
-	    result *= 1000;
-	    break;
+    case 'G':
+        result *= 1000;
+        // fallthrough
+    case 'M':
+        result *= 1000;
+        // fallthrough
+    case 'K':
+        result *= 1000;
+        break;
     }
 
     return result;
 }
 
 char** parse_arguments(int argc, char* argv[], struct pipefs_data* data,
-		int* argc_out)
+        int* argc_out)
 {
     int option;
     optind = 0;
@@ -84,13 +84,13 @@ char** parse_arguments(int argc, char* argv[], struct pipefs_data* data,
             data->command = optarg;
             break;
         case 'C':
-	    data->seekable = 1;
-	    data->cache = 1;
+        data->seekable = 1;
+        data->cache = 1;
             break;
-	case 'L':
-	    data->cache_limit = parse_size(optarg);
+    case 'L':
+        data->cache_limit = parse_size(optarg);
         case 'k':
-	    data->seekable = 1;
+        data->seekable = 1;
             break;
         case 'l':
             log_open(optarg);
@@ -136,14 +136,14 @@ void print_usage(const char* program_name)
                     "Options:\n"
                     "    --help             Print a help message then exit.\n"
                     "    --command          The filter command. Mandatory.\n"
-		    "    --cache            Use caching. Implies --seekable.\n"
-		    "    --cache-limit      The maximum total size of the cache.\n"
+            "    --cache            Use caching. Implies --seekable.\n"
+            "    --cache-limit      The maximum total size of the cache.\n"
                     "    --log-file         The file to log to. Optional. If not\n"
                     "                       provided, no logging is performed.\n"
-		    "    --pidfile          Store the pid of the process in this file.\n"
+            "    --pidfile          Store the pid of the process in this file.\n"
                     "    --root-dir         The directory to be mapped.\n"
                     "                       Mandatory.\n"
-		    "    --seekable         Allow seeking in the translated files.\n"
+            "    --seekable         Allow seeking in the translated files.\n"
                     "    --source-suffix    The suffix of the files to be\n"
                     "                       transformed. Mandatory.\n"
                     "    --target-suffix    The suffix of the transformed files.\n"

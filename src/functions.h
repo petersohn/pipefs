@@ -19,16 +19,16 @@ int pipefs_truncate(const char *path, off_t newsize);
 int pipefs_utime(const char *path, struct utimbuf *ubuf);
 int pipefs_open(const char *path, struct fuse_file_info *fi);
 int pipefs_read(const char *path, char *buf, size_t size, off_t offset,
-		struct fuse_file_info *fi);
+        struct fuse_file_info *fi);
 int pipefs_write(const char *path, const char *buf, size_t size, off_t offset,
-		struct fuse_file_info *fi);
+        struct fuse_file_info *fi);
 int pipefs_statfs(const char *path, struct statvfs *statv);
 int pipefs_flush(const char *path, struct fuse_file_info *fi);
 int pipefs_release(const char *path, struct fuse_file_info *fi);
 int pipefs_fsync(const char *path, int datasync, struct fuse_file_info *fi);
 int pipefs_opendir(const char *path, struct fuse_file_info *fi);
 int pipefs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
-		off_t offset, struct fuse_file_info *fi);
+        off_t offset, struct fuse_file_info *fi);
 int pipefs_releasedir(const char *path, struct fuse_file_info *fi);
 int pipefs_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi);
 void *pipefs_init(struct fuse_conn_info *conn);
@@ -37,7 +37,7 @@ int pipefs_access(const char *path, int mask);
 int pipefs_create(const char *path, mode_t mode, struct fuse_file_info *fi);
 int pipefs_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi);
 int pipefs_fgetattr(const char *path, struct stat *statbuf,
-		struct fuse_file_info *fi);
+        struct fuse_file_info *fi);
 
 
 #endif /* SRC_FUNCTIONS_H */
