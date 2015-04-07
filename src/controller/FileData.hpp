@@ -9,7 +9,6 @@ namespace pipefs {
 class Cache;
 
 struct FileData {
-    int originalFd = 0;
     int fd = 0;
     pid_t pid = 0;
     off_t currentOffset = 0;

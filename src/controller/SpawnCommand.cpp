@@ -12,24 +12,16 @@
 
 namespace pipefs {
 
-void spawnCommand(const char* command, const char* inputFile, int flags,
-        FileData& fileData)
+void spawnCommand(const char* command, int fd, int flags, FileData& fileData)
 {
-    int fd = open(inputFile, O_RDONLY);
-    if (fd < 0) {
-        throwError();
-    }
-
     int pipefd[2];
     if (pipe(pipefd) < 0) {
-        close(fd);
         throwError();
     }
 
     if (fcntl(pipefd[0], F_SETFL, flags) < 0) {
         close(pipefd[0]);
         close(pipefd[1]);
-        close(fd);
         throwError();
     }
 
@@ -37,7 +29,6 @@ void spawnCommand(const char* command, const char* inputFile, int flags,
     if (pid < 0) {
         close(pipefd[0]);
         close(pipefd[1]);
-        close(fd);
         throwError();
     }
 
@@ -69,7 +60,6 @@ void spawnCommand(const char* command, const char* inputFile, int flags,
     // parent
     close(pipefd[1]);
 
-    fileData.originalFd = fd;
     fileData.fd = pipefd[0];
     fileData.pid = pid;
     fileData.currentOffset = 0;
