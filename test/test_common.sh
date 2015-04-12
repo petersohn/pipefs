@@ -79,14 +79,14 @@ function common_cleanup()
 
 function get_common_test_cases()
 {
-	echo "testcases/can_find_files_in_directories.sh"
-	echo "testcases/directory_listing_works_for_suffix_files.sh"
-	echo "testcases/can_find_suffix_files_in_directories.sh"
-	echo "testcases/suffix_files_are_translated.sh"
-	echo "testcases/translation_works_for_large_files.sh"
-	echo "testcases/translation_works_in_parallel.sh"
-	echo "testcases/translation_works_after_interrupting_a_read.sh"
-	echo "testcases/file_descriptors_are_not_leaked.sh"
+	echo "testcases/can_find_files_in_directories"
+	echo "testcases/directory_listing_works_for_suffix_files"
+	echo "testcases/can_find_suffix_files_in_directories"
+	echo "testcases/suffix_files_are_translated"
+	echo "testcases/translation_works_for_large_files"
+	echo "testcases/translation_works_in_parallel"
+	echo "testcases/translation_works_after_interrupting_a_read"
+	echo "testcases/file_descriptors_are_not_leaked"
 }
 
 custom_options=()

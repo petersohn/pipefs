@@ -1,0 +1,30 @@
+#!/bin/bash
+
+function test_init()
+{
+	common_init
+	start_pipefs
+}
+
+function test_cleanup()
+{
+	common_cleanup
+}
+
+function get_test_cases()
+{
+	get_common_test_cases
+
+	echo "testcases/directory_listing_works_for_non_suffix_files"
+	echo "testcases/non_suffix_files_remain_unchanged"
+	echo "testcases/cannot_access_original_suffix_file"
+
+	echo "testcases/permissions_are_correct_for_non_suffix_files"
+	echo "testcases/permissions_are_correct_for_suffix_files"
+	echo "testcases/can_write_to_non_suffix_files"
+	echo "testcases/can_create_non_suffix_files"
+	echo "testcases/cannot_write_to_translated_files"
+	echo "testcases/cannot_write_to_original_suffix_files"
+}
+
+
