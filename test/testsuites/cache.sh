@@ -30,6 +30,7 @@ function get_test_cases()
 	echo "testcases/command_is_executed_more_times_if_file_is_large.sh"
 	echo "testcases/command_is_executed_only_once_if_read_in_parallel.sh"
 	echo "testcases/cache_is_not_cleared_when_cache_limit_is_set_to_zero.sh"
+	echo "testcases/translation_works_after_interrupting_a_queued_wait_cached.sh"
 }
 
 

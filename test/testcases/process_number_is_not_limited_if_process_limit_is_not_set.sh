@@ -2,9 +2,7 @@
 
 executed_filename="$PWD/executed_num"
 rm -f "$executed_filename"
-if [ -z "$command" ]; then
-    command="echo line >>$executed_filename && sleep 0.5 && cat"
-fi
+command="echo line >>$executed_filename && sleep 0.5 && cat"
 
 function test_run()
 {
