@@ -10,7 +10,7 @@ for ((i=0; i<number; ++i))
 done
 '"
 
-custom_options+=(--process-limit=10)
+custom_options+=(--process-limit=1)
 
 function test_run()
 {
