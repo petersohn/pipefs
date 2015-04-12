@@ -1,9 +1,10 @@
 #include "pipefs_controller.h"
 #include "log.h"
+#include "data.h"
+#include "functions_common.h"
 
 #include "Controller.hpp"
 #include "FileData.hpp"
-#include "data.h"
 
 #include <boost/exception/all.hpp>
 #include <boost/system/system_error.hpp>
@@ -26,11 +27,6 @@ extern "C" {
                 return -e.code().value(); \
         } else { throw; } \
     })
-
-void log_error(const char *str, int error)
-{
-    log_msg("    ERROR %s: %s\n", str, strerror(error));
-}
 
 struct pipefs_controller* pipefs_controller_create(
                 const struct pipefs_data* data)

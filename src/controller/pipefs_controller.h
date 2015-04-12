@@ -23,7 +23,6 @@ int pipefs_controller_read(struct pipefs_controller* controller,
 int pipefs_controller_release(struct pipefs_controller* controller,
         const char* filename, struct pipefs_filedata* data);
 
-void log_error(const char *str, int error);
 
 #ifdef __cplusplus
 }
