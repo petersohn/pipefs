@@ -22,6 +22,7 @@ function test_run()
     echo 100000000 >rootdir/$wait_filename
 
 	timeout 0.2 cat mountpoint/$wait_translated_filename >/dev/null &
+	sleep 0.05
 	timeout 0.1 cat mountpoint/$nowait_translated_filename >/dev/null &
 
 	wait

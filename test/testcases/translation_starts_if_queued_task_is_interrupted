@@ -19,10 +19,11 @@ function test_run()
 	local nowait_translated_filename=nowait.2
 	local wait_filename=wait.1
 	local wait_translated_filename=wait.2
-    echo 1 >rootdir/$nowait_filename
-    echo 30 >rootdir/$wait_filename
+    echo 10 >rootdir/$nowait_filename
+    echo 50 >rootdir/$wait_filename
 
 	timeout 0.2 cat mountpoint/$wait_translated_filename >/dev/null &
+	sleep 0.05
 	timeout 0.1 cat mountpoint/$nowait_translated_filename >/dev/null &
 
 	wait
@@ -30,8 +31,13 @@ function test_run()
     local executed_count=$(cat "$executed_filename" | wc -l)
     assert [ 2 -eq $executed_count ]
 
+	expected_file_contents=$(
+		for ((i=0; i<10; ++i)); do
+			echo content
+		done
+	)
 	read_file_contents=$(cat mountpoint/$nowait_translated_filename)
-	assert [ "content" == "$read_file_contents" ]
+	assert [ "$expected_file_contents" == "$read_file_contents" ]
     executed_count=$(cat "$executed_filename" | wc -l)
     assert [ 2 -eq $executed_count ]
 }
