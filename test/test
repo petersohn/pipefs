@@ -35,6 +35,9 @@ function run_test()
         echo -e '    \e[0;32mTest successful.\e[0m'
     else
         echo -e '    \e[0;31mTest failed.\e[0m'
+    fi
+
+    if [ $result -ne 0 -o -n "$preserve_logs" ]; then
 	permanent_log_dir="$log_base_dir/$(basename "$testsuite")/$(basename "$test_name")"
 	mkdir -p "$permanent_log_dir"
 	mv "$log_dir"/* "$permanent_log_dir"
@@ -44,36 +47,79 @@ function run_test()
     return $result
 }
 
-function full_path()
-{
-    cd "$(dirname "$1")"
-    echo "$PWD/$(basename "$1")"
+print_usage() {
+    cat <<_END_
+Run tests for pipefs.
+
+Usage: $0 -h
+       $0 [options] -s test_suite1 [-s test_suite2 ...] binary
+       $0 [options] -S test_suite_file1 [-S test_suite_file2 ...] binary
+
+Options:
+    -h        This help message.
+
+    -l        Preserve logs. Normally only logs for failed test cases are
+              preserved.
+
+    -s        Run a test suite. It should be a file with a function
+	      get_test_cases which prints a list of test cases. It should also
+	      contain a test_init and test_cleanup function that is run at the
+	      beginnning and end of each test case.
+
+    -S        Run test suites from a file. It should be a file with a function
+              get_test_suites which prints a list of test suites.
+_END_
 }
+
+test_suite_files=()
+test_suites=()
+preserve_logs=
+while getopts "hls:S:" Option; do
+    case $Option in
+        h)
+	    print_usage
+	    exit
+	    ;;
+	l)
+	    preserve_logs=yes
+	    ;;
+	s)
+	    test_suites+=($OPTARG)
+	    ;;
+	S)
+	    test_suite_files+=($OPTARG)
+	    ;;
+    esac
+done
+
+shift $(($OPTIND - 1))
 
 set -e
 
-binary_name="$(full_path "$1")"
-test_file="$(full_path "$2")"
+binary_name="$1"
 
 if [ ! -x "$binary_name" ]; then
     echo "Invalid binary: $binary_name" >&2
     exit 1
 fi
-if [ ! -e "$test_file" ]; then
-    echo "Invalid test file: $test_file" >&2
-    exit 1
-fi
 
-test_dir="$(full_path "$(dirname "$0")")"
+binary_name=$(readlink -e "$binary_name")
+
+for test_suite_file in "${test_suite_files[@]}"; do
+    while read -r test_suite; do
+	test_suites+=("$test_suite")
+    done < <(source "$test_suite_files" && get_test_suites)
+done
+
+test_dir="$(readlink -e "$(dirname "$0")")"
 log_base_dir="$test_dir/logs/$(date '+%Y%m%d_%H%M%S%N')"
 
 source "$test_dir/test_fw.sh"
 source "$test_dir/test_common.sh"
-source "$test_file"
 
 fail_num=0
 run_num=0
-while read testsuite; do
+for testsuite in "${test_suites[@]}"; do
     echo "Running test suite $(basename $testsuite)"
     if ! source "$test_dir/$testsuite"; then
 	echo "Test suite not found."
@@ -88,7 +134,7 @@ while read testsuite; do
         fi
         (( ++run_num ))
     done < <(get_test_cases)
-done < <(get_test_suites)
+done
 
 echo "$fail_num out of $run_num failed."
 
