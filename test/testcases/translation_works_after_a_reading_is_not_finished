@@ -1,0 +1,17 @@
+#!/bin/bash
+
+function test_run()
+{
+	local filename=filename.1
+	local translated_filename=filename.2
+    echo content >rootdir/$filename
+
+	assert "$test_dir/openclose" mountpoint/$translated_filename
+    local expected_file_contents=$(get_expected_file_contents rootdir/$filename)
+	read_file_contents=$(cat mountpoint/$translated_filename)
+	assert [ "$expected_file_contents" == "$read_file_contents" ]
+    assert_false lsof rootdir/$filename
+}
+
+
+

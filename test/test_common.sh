@@ -86,6 +86,7 @@ function get_common_test_cases()
 	echo "testcases/translation_works_for_large_files"
 	echo "testcases/translation_works_in_parallel"
 	echo "testcases/translation_works_after_interrupting_a_read"
+	echo "testcases/translation_works_after_a_reading_is_not_finished"
 	echo "testcases/file_descriptors_are_not_leaked"
 }
 
