@@ -24,10 +24,10 @@ function test_run()
 
 	timeout 0.2 cat mountpoint/$wait_translated_filename >/dev/null &
 	sleep 0.05
-	timeout 0.1 cat mountpoint/$nowait_translated_filename >/dev/null &
+	"$test_dir/openclose" mountpoint/$nowait_translated_filename &
 
 	wait
-	sleep 0.6
+	sleep 1
     local executed_count=$(cat "$executed_filename" | wc -l)
     assert [ 2 -eq $executed_count ]
 
