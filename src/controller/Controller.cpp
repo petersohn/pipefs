@@ -5,6 +5,8 @@
 #include "data.h"
 #include "SpawnCommand.hpp"
 
+#include <util/Finally.hpp>
+
 #include <fuse.h>
 
 namespace pipefs {
@@ -22,9 +24,9 @@ std::shared_ptr<boost::asio::posix::stream_descriptor> Controller::createCommand
         FileData& fileData, int fd, int flags,
         boost::asio::io_service& ioService)
 {
+    auto fdClose = util::finally([fd]() { close(fd); });
     log_msg("Starting command. fileData = %08x\n", &fileData);
     spawnCommand(command, fd, flags, fileData);
-    checkedSystemCall(&close, fd);
     log_msg("    filedata=%08x -- fd=%d, offset=%d\n",
             &fileData, fileData.fd, fileData.currentOffset);
     return std::make_shared<boost::asio::posix::stream_descriptor>(

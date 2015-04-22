@@ -4,7 +4,7 @@
 export HOME
 
 CC = @(C_COMPILER)
-CXX = @(CPP_COMPILER)
+CXX = @(COMPILER)
 LD = $(CXX)
 
 COMPILE_TUP = $(TUP_CWD)/compile.tup
@@ -15,4 +15,6 @@ TUTORIAL_DIR = $(TUP_CWD)/tutorial
 SOURCE_DIR = $(TUP_CWD)/src
 CONTROLLER_DIR = $(TUP_CWD)/src/controller
 TURTLE_DIR = $(TUP_CWD)/turtle
+CPP_UTIL_DIR = $(TUP_CWD)/cpp-util
+
 
