@@ -19,6 +19,15 @@ void throwError()
     throwSystemError(errno);
 }
 
+template <typename Function, typename... Args>
+int checkedSystemCall(Function function, Args... args) {
+    int result = function(std::forward<Args>(args)...);
+    if (result < 0) {
+        throwError();
+    }
+    return result;
+}
+
 };
 
 

@@ -24,8 +24,9 @@ std::shared_ptr<boost::asio::posix::stream_descriptor> Controller::createCommand
 {
     log_msg("Starting command. fileData = %08x\n", &fileData);
     spawnCommand(command, fd, flags, fileData);
+    checkedSystemCall(&close, fd);
     log_msg("    filedata=%08x -- fd=%d, offset=%d\n",
-        &fileData, fileData.fd, fileData.currentOffset);
+            &fileData, fileData.fd, fileData.currentOffset);
     return std::make_shared<boost::asio::posix::stream_descriptor>(
             ioService, fileData.fd);
 }
@@ -46,7 +47,8 @@ void Controller::createCache(const char* key, int fd, int flags,
         log_msg("  New cache.\n");
         using std::placeholders::_1;
         readLoop.add(std::bind(&Controller::createCommand, this,
-                std::ref(fileData), fd, flags, _1), fileData.cache);
+                std::ref(fileData), checkedSystemCall(&dup, fd), flags, _1),
+                fileData.cache);
     } else {
         log_msg("  No new cache.\n");
     }
@@ -68,8 +70,8 @@ FileData* Controller::open(const char* filename, int fd,
             data->cache = std::make_shared<Cache>();
             using std::placeholders::_1;
             readLoop.add(std::bind(&Controller::createCommand, this,
-                    std::ref(*data), fd, fi.flags, _1),
-            data->cache);
+                    std::ref(*data), checkedSystemCall(&dup, fd), fi.flags, _1),
+                    data->cache);
         } else {
             spawnCommand(command, fd, fi.flags, *data);
             fi.nonseekable = 1;
@@ -96,11 +98,8 @@ int Controller::read(FileData* data, void* buffer, std::size_t size, off_t offse
     }
 
     log_msg("    read()\n");
-    int result = ::read(data->fd, buffer, size);
 
-    if (result < 0) {
-        throwError();
-    }
+    int result = checkedSystemCall(&::read, data->fd, buffer, size);
 
     if (result > 0) {
         data->currentOffset += result;
@@ -121,10 +120,7 @@ void Controller::release(const char* filename, FileData* data)
     } else if (seekable) {
         readLoop.remove(fileData->fd);
     } else {
-        int result = ::close(fileData->fd);
-        if (result < 0) {
-            throwError();
-        }
+        checkedSystemCall(&close, fileData->fd);
     }
 }
 

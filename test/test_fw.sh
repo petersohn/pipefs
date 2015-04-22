@@ -11,7 +11,7 @@ function assert()
 function assert_false()
 {
 	if "$@"; then
-		echo "Assertion failed: $@"
+		echo "Assertion failed: ! $@"
 		exit 1
 	fi
 }
