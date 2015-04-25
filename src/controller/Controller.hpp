@@ -41,7 +41,7 @@ private:
 
     void createCache(const char* key, int fd, int flags, FileData& fileData);
     std::shared_ptr<boost::asio::posix::stream_descriptor> createCommand(
-            FileData& fileData, int fd, int flags,
+            FileData* fileData, int fd, int flags,
             boost::asio::io_service& ioService);
 };
 

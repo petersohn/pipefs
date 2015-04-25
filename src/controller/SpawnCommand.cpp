@@ -14,7 +14,7 @@
 
 namespace pipefs {
 
-void spawnCommand(const char* command, int fd, int flags, FileData& fileData)
+int spawnCommand(const char* command, int fd, int flags, FileData* fileData)
 {
     int pipefd[2];
     checkedSystemCall(&pipe, pipefd);
@@ -55,9 +55,13 @@ void spawnCommand(const char* command, int fd, int flags, FileData& fileData)
     }
 
     // parent
-    fileData.fd = pipefd[0];
-    fileData.pid = pid;
-    fileData.currentOffset = 0;
+    if (fileData) {
+        fileData->fd = pipefd[0];
+        fileData->pid = pid;
+        fileData->currentOffset = 0;
+    }
+
+    return pipefd[0];
 }
 
 };

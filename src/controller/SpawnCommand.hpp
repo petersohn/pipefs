@@ -6,7 +6,7 @@ namespace pipefs {
 
 struct FileData;
 
-void spawnCommand(const char* command, int fd, int flags, FileData& fileData);
+int spawnCommand(const char* command, int fd, int flags, FileData* fileData);
 
 };
 

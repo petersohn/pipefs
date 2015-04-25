@@ -21,16 +21,22 @@ Controller::Controller(const pipefs_data& data):
 }
 
 std::shared_ptr<boost::asio::posix::stream_descriptor> Controller::createCommand(
-        FileData& fileData, int fd, int flags,
+        FileData* fileData, int inputFd, int flags,
         boost::asio::io_service& ioService)
 {
-    auto fdClose = util::finally([fd]() { close(fd); });
-    log_msg("Starting command. fileData = %08x\n", &fileData);
-    spawnCommand(command, fd, flags, fileData);
-    log_msg("    filedata=%08x -- fd=%d, offset=%d\n",
-            &fileData, fileData.fd, fileData.currentOffset);
+    auto fdClose = util::finally([inputFd]() { close(inputFd); });
+    log_msg("Starting command. fileData = %08x\n", fileData);
+    int outputFd = spawnCommand(command, inputFd, flags, fileData);
+
+    if (fileData) {
+        log_msg("    filedata=%08x -- fd=%d, offset=%d\n",
+                fileData, fileData->fd, fileData->currentOffset);
+    } else {
+        log_msg("    fd=%d\n", outputFd);
+    }
+
     return std::make_shared<boost::asio::posix::stream_descriptor>(
-            ioService, fileData.fd);
+            ioService, outputFd);
 }
 
 Controller::~Controller()
@@ -48,9 +54,8 @@ void Controller::createCache(const char* key, int fd, int flags,
     if (cacheResult.second) {
         log_msg("  New cache.\n");
         using std::placeholders::_1;
-        readLoop.add(std::bind(&Controller::createCommand, this,
-                std::ref(fileData), checkedSystemCall(&dup, fd), flags, _1),
-                fileData.cache);
+        readLoop.add(std::bind(&Controller::createCommand, this, nullptr,
+                checkedSystemCall(&dup, fd), flags, _1), fileData.cache);
     } else {
         log_msg("  No new cache.\n");
     }
@@ -72,10 +77,10 @@ FileData* Controller::open(const char* filename, int fd,
             data->cache = std::make_shared<Cache>();
             using std::placeholders::_1;
             readLoop.add(std::bind(&Controller::createCommand, this,
-                    std::ref(*data), checkedSystemCall(&dup, fd), fi.flags, _1),
+                    data.get(), checkedSystemCall(&dup, fd), fi.flags, _1),
                     data->cache);
         } else {
-            spawnCommand(command, fd, fi.flags, *data);
+            spawnCommand(command, fd, fi.flags, data.get());
             fi.nonseekable = 1;
         }
     }
@@ -94,18 +99,18 @@ int Controller::read(FileData* data, void* buffer, std::size_t size, off_t offse
         log_msg("    cache_read()\n");
         return data->cache->read(buffer, size, offset);
     } else {
-    if (offset != data->currentOffset) {
-        log_msg("    bad offset, expected=%d\n", data->currentOffset);
-        throwSystemError(ESPIPE);
-    }
+        if (offset != data->currentOffset) {
+            log_msg("    bad offset, expected=%d\n", data->currentOffset);
+            throwSystemError(ESPIPE);
+        }
 
-    log_msg("    read()\n");
+        log_msg("    read()\n");
+        int result = checkedSystemCall(&::read, data->fd, buffer, size);
 
-    int result = checkedSystemCall(&::read, data->fd, buffer, size);
+        if (result > 0) {
+            data->currentOffset += result;
+        }
 
-    if (result > 0) {
-        data->currentOffset += result;
-    }
         return result;
     }
 }

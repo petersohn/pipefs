@@ -35,23 +35,28 @@ BOOST_FIXTURE_TEST_SUITE(ProcessTest, ProcessTestFixture)
 BOOST_AUTO_TEST_CASE(successful_process)
 {
     FileData data;
-    spawnCommand("true", readFd, O_RDONLY, data);
+    int fd = spawnCommand("true", readFd, O_RDONLY, &data);
+    BOOST_CHECK_EQUAL(fd, data.fd);
+}
+
+BOOST_AUTO_TEST_CASE(successful_process_with_no_data)
+{
+    spawnCommand("true", readFd, O_RDONLY, nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(process_with_output)
 {
     std::string text = "something";
     std::string command = "echo -n " + text;
-    FileData data;
-    spawnCommand(command.c_str(), readFd, O_RDONLY, data);
+    int fd = spawnCommand(command.c_str(), readFd, O_RDONLY, nullptr);
 
     char result[20];
     ssize_t readBytes = 0;
-    CHECKED_SYSCALL(read(data.fd, result, 20), readBytes);
+    CHECKED_SYSCALL(read(fd, result, 20), readBytes);
     result[readBytes] = 0;
     BOOST_CHECK_EQUAL(readBytes, text.size());
     BOOST_CHECK_EQUAL(result, text);
-    CHECKED_SYSCALL(read(data.fd, result, 20), readBytes);
+    CHECKED_SYSCALL(read(fd, result, 20), readBytes);
     BOOST_CHECK_EQUAL(readBytes, 0);
 }
 
@@ -61,16 +66,15 @@ BOOST_AUTO_TEST_CASE(FileFixture)
     file << text;
     file.close();
 
-    FileData data;
-    spawnCommand("cat", readFd, O_RDONLY, data);
+    int fd = spawnCommand("cat", readFd, O_RDONLY, nullptr);
 
     char result[20];
     ssize_t readBytes = 0;
-    CHECKED_SYSCALL(read(data.fd, result, 20), readBytes);
+    CHECKED_SYSCALL(read(fd, result, 20), readBytes);
     result[readBytes] = 0;
     BOOST_CHECK_EQUAL(readBytes, text.size());
     BOOST_CHECK_EQUAL(result, text);
-    CHECKED_SYSCALL(read(data.fd, result, 20), readBytes);
+    CHECKED_SYSCALL(read(fd, result, 20), readBytes);
     BOOST_CHECK_EQUAL(readBytes, 0);
 }
 
