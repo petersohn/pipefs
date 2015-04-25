@@ -104,20 +104,26 @@ private:
 
     struct QueueData {
         ReadStarter readStarter;
-        std::shared_ptr<Cache> cache;
+        std::weak_ptr<Cache> cache;
     };
 
     std::map<int, std::unique_ptr<CacheData>> caches;
     std::deque<QueueData> queue;
 
     void doAdd(const QueueData& queueData) {
+        auto cache = queueData.cache.lock();
+        if (!cache) {
+            logger("ReadLoop::doAdd(): cancelled\n");
+            return;
+        }
+
         auto stream = queueData.readStarter(ioService);
         assert(stream);
         auto fd = stream->native_handle();
 
         logger("ReadLoop::doAdd(%d)\n", fd);
         auto emplaceResult = caches.emplace(fd,
-                std::make_unique<CacheData>(logger, queueData.cache, stream));
+                std::make_unique<CacheData>(logger, cache, stream));
 
         if (emplaceResult.second) {
             logger("  added to read loop\n");

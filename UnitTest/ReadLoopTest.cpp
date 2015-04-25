@@ -150,7 +150,7 @@ BOOST_AUTO_TEST_CASE(read_handles_multiple_streams_simultaneously)
     ioService.run();
 }
 
-BOOST_AUTO_TEST_CASE(reads_are_serialized_when_there_is_a_limit_to_simultaneous_process_number)
+BOOST_AUTO_TEST_CASE(reads_are_queued_when_there_is_a_limit_to_simultaneous_process_number)
 {
     int fd1 = 21;
     auto cache1 = std::make_shared<MockCache>();
@@ -174,6 +174,36 @@ BOOST_AUTO_TEST_CASE(reads_are_serialized_when_there_is_a_limit_to_simultaneous_
     readLoopUnderTest.add([&](boost::asio::io_service& ioService)
         {
             BOOST_CHECK_EQUAL(&ioService, &this->ioService);
+            return stream2;
+        }, cache2);
+
+    ioService.run();
+}
+
+BOOST_AUTO_TEST_CASE(queued_read_is_not_started_when_cache_becomes_invalid)
+{
+    int fd1 = 21;
+    auto cache1 = std::make_shared<MockCache>();
+    auto stream1 = std::make_shared<MockStreamDescriptor>(ioService);
+
+    auto cache2 = std::make_shared<MockCache>();
+    auto stream2 = std::make_shared<MockStreamDescriptor>(ioService);
+    ReadLoop readLoopUnderTest{ioService, 1};
+
+    mock::sequence seq, cancelSeq, closeSeq;
+    addExpectationsForStreamReading(stream1, cache1, seq, cancelSeq,
+            closeSeq, fd1, {23432, 234, 130});
+    readLoopUnderTest.add([&](boost::asio::io_service& ioService)
+        {
+            BOOST_CHECK_EQUAL(&ioService, &this->ioService);
+            cache2.reset();
+            return stream1;
+        }, cache1);
+
+    MOCK_EXPECT(stream2->doAsyncRead).never();
+    readLoopUnderTest.add([&](boost::asio::io_service& /*ioService*/)
+        {
+            BOOST_ERROR("Cancelled read shouldn't be called.");
             return stream2;
         }, cache2);
 
