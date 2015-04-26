@@ -2,10 +2,20 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef uint32_t flag_type;
+
+#define FLAG_SEEKABLE 0x00000001
+// cache implies seekable
+#define FLAG_CACHE    0x00000003
+
+#define ADD_FLAG(flags, flag) (flags) = ((flags) | (flag))
+#define IS_FLAG_SET(flags, flag) (((flags) & (flag)) == (flag))
 
 struct pipefs_data {
     FILE* logfile;
@@ -14,8 +24,7 @@ struct pipefs_data {
     char* source_suffix;
     char* target_suffix;
     char* command;
-    int seekable;
-    int cache;
+    flag_type flags;
     size_t cache_limit;
     size_t process_limit;
 

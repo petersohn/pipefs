@@ -1,5 +1,5 @@
-#ifndef SRC_CACHE_BASICREADLOOP_HPP
-#define SRC_CACHE_BASICREADLOOP_HPP
+#ifndef SRC_CONTROLLER_BASICREADLOOP_HPP
+#define SRC_CONTROLLER_BASICREADLOOP_HPP
 
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/buffer.hpp>
@@ -171,4 +171,4 @@ private:
 
 }
 
-#endif /* SRC_CACHE_BASICREADLOOP_HPP */
+#endif // SRC_CONTROLLER_BASICREADLOOP_HPP

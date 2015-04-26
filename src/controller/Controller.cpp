@@ -14,8 +14,8 @@ namespace pipefs {
 Controller::Controller(const pipefs_data& data):
     ioThread{}, caches{}, signalHandler{ioThread.getIoService()},
     readLoop{ioThread.getIoService(), data.process_limit},
-    command(data.command), seekable(data.seekable),
-    useCache(data.cache), cacheSize(data.cache_limit)
+    command(data.command), seekable(IS_FLAG_SET(data.flags, FLAG_SEEKABLE)),
+    useCache(IS_FLAG_SET(data.flags, FLAG_CACHE)), cacheSize(data.cache_limit)
 {
     ioThread.start();
 }

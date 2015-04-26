@@ -84,13 +84,13 @@ char** parse_arguments(int argc, char* argv[], struct pipefs_data* data,
             data->command = optarg;
             break;
         case 'C':
-        data->seekable = 1;
-        data->cache = 1;
+            ADD_FLAG(data->flags, FLAG_CACHE);
             break;
-    case 'L':
-        data->cache_limit = parse_size(optarg);
+        case 'L':
+            data->cache_limit = parse_size(optarg);
+            break;
         case 'k':
-        data->seekable = 1;
+            ADD_FLAG(data->flags, FLAG_SEEKABLE);
             break;
         case 'l':
             log_open(optarg);

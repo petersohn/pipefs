@@ -182,8 +182,8 @@ BOOST_AUTO_TEST_CASE(parse_seekable)
     result = parse_arguments(2, const_cast<char**>(args), &data, &resultLength);
     BOOST_CHECK_EQUAL(resultLength, 1);
     CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
-    BOOST_CHECK_EQUAL(data.seekable, 1);
-    BOOST_CHECK_EQUAL(data.cache, 0);
+    BOOST_CHECK(IS_FLAG_SET(data.flags, FLAG_SEEKABLE));
+    BOOST_CHECK(!IS_FLAG_SET(data.flags, FLAG_CACHE));
 }
 
 BOOST_AUTO_TEST_CASE(parse_cache)
@@ -192,8 +192,8 @@ BOOST_AUTO_TEST_CASE(parse_cache)
     result = parse_arguments(2, const_cast<char**>(args), &data, &resultLength);
     BOOST_CHECK_EQUAL(resultLength, 1);
     CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
-    BOOST_CHECK_EQUAL(data.seekable, 1);
-    BOOST_CHECK_EQUAL(data.cache, 1);
+    BOOST_CHECK(IS_FLAG_SET(data.flags, FLAG_SEEKABLE));
+    BOOST_CHECK(IS_FLAG_SET(data.flags, FLAG_CACHE));
 }
 
 BOOST_AUTO_TEST_CASE(parse_cache_limit)
