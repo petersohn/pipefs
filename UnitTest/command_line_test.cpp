@@ -207,6 +207,95 @@ BOOST_AUTO_TEST_CASE(parse_cache_limit)
     BOOST_CHECK_EQUAL(data.cache_limit, value);
 }
 
+BOOST_AUTO_TEST_CASE(parse_cache_limit_bytes)
+{
+    std::size_t value = 231;
+    std::string valueString = boost::lexical_cast<std::string>(value) + "b";
+    const char* args[] = {"pipefs", "--cache-limit", valueString.c_str()};
+    parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+    BOOST_CHECK_EQUAL(data.cache_limit, value);
+}
+
+BOOST_AUTO_TEST_CASE(parse_cache_limit_Bytes)
+{
+    std::size_t value = 524;
+    std::string valueString = boost::lexical_cast<std::string>(value) + "B";
+    const char* args[] = {"pipefs", "--cache-limit", valueString.c_str()};
+    parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+    BOOST_CHECK_EQUAL(data.cache_limit, value);
+}
+
+BOOST_AUTO_TEST_CASE(parse_cache_limit_kilobytes)
+{
+    std::size_t value = 4512;
+    std::size_t expectedValue = value * 1024;
+    std::string valueString = boost::lexical_cast<std::string>(value) + "k";
+    const char* args[] = {"pipefs", "--cache-limit", valueString.c_str()};
+    parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+    BOOST_CHECK_EQUAL(data.cache_limit, expectedValue);
+}
+
+BOOST_AUTO_TEST_CASE(parse_cache_limit_Kilobytes)
+{
+    std::size_t value = 51;
+    std::size_t expectedValue = value * 1000;
+    std::string valueString = boost::lexical_cast<std::string>(value) + "K";
+    const char* args[] = {"pipefs", "--cache-limit", valueString.c_str()};
+    parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+    BOOST_CHECK_EQUAL(data.cache_limit, expectedValue);
+}
+
+BOOST_AUTO_TEST_CASE(parse_cache_limit_megabytes)
+{
+    std::size_t value = 620;
+    std::size_t expectedValue = value * 1024 * 1024;
+    std::string valueString = boost::lexical_cast<std::string>(value) + "m";
+    const char* args[] = {"pipefs", "--cache-limit", valueString.c_str()};
+    parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+    BOOST_CHECK_EQUAL(data.cache_limit, expectedValue);
+}
+
+BOOST_AUTO_TEST_CASE(parse_cache_limit_Megabytes)
+{
+    std::size_t value = 2346;
+    std::size_t expectedValue = value * 1000 * 1000;
+    std::string valueString = boost::lexical_cast<std::string>(value) + "M";
+    const char* args[] = {"pipefs", "--cache-limit", valueString.c_str()};
+    parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+    BOOST_CHECK_EQUAL(data.cache_limit, expectedValue);
+}
+
+BOOST_AUTO_TEST_CASE(parse_cache_limit_gigabytes)
+{
+    std::size_t value = 2;
+    std::size_t expectedValue = value * 1024 * 1024 * 1024;
+    std::string valueString = boost::lexical_cast<std::string>(value) + "g";
+    const char* args[] = {"pipefs", "--cache-limit", valueString.c_str()};
+    parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+    BOOST_CHECK_EQUAL(data.cache_limit, expectedValue);
+}
+
+BOOST_AUTO_TEST_CASE(parse_cache_limit_Gigabytes)
+{
+    std::size_t value = 3;
+    std::size_t expectedValue = value * 1000 * 1000 * 1000;
+    std::string valueString = boost::lexical_cast<std::string>(value) + "G";
+    const char* args[] = {"pipefs", "--cache-limit", valueString.c_str()};
+    parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+    BOOST_CHECK_EQUAL(data.cache_limit, expectedValue);
+}
+
+BOOST_AUTO_TEST_CASE(parse_process_limit)
+{
+    std::string valueString = "13";
+    std::size_t value = boost::lexical_cast<std::size_t>(valueString);
+    const char* args[] = {"pipefs", "--process-limit", valueString.c_str()};
+    result = parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+    BOOST_CHECK_EQUAL(resultLength, 1);
+    CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
+    BOOST_CHECK_EQUAL(data.process_limit, value);
+}
+
 BOOST_AUTO_TEST_CASE(parse_all_values)
 {
     std::string command = "command";
