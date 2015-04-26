@@ -32,6 +32,7 @@ function get_test_cases()
 	echo "testcases/cache_is_not_cleared_when_cache_limit_is_set_to_zero"
 	echo "testcases/translation_starts_if_queued_task_is_interrupted"
 	echo "testcases/size_is_calculated_correctly_after_a_successful_read"
+	echo "testcases/size_is_calculated_correctly_after_stat_if_preload_is_set"
 }
 
 

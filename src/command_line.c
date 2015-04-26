@@ -16,6 +16,7 @@ static struct option options[] = {
     {"cache-limit",   required_argument, NULL, 'L'},
     {"log-file",      required_argument, NULL, 'l'},
     {"pidfile",       required_argument, NULL, 'p'},
+    {"preload",       required_argument, NULL, 'o'},
     {"process-limit", required_argument, NULL, 'P'},
     {"root-dir",      required_argument, NULL, 'r'},
     {"seekable",      no_argument,       NULL, 'k'},
@@ -23,6 +24,44 @@ static struct option options[] = {
     {"target-suffix", required_argument, NULL, 't'},
     {NULL, 0, NULL, 0}
 };
+
+struct preload_info {
+    const char* name;
+    flag_type flag;
+};
+
+static struct preload_info preload_infos[] = {
+    {"stat",     FLAG_PRELOAD_STAT},
+    {"readdir",  FLAG_PRELOAD_READDIR},
+    {NULL, 0}
+};
+
+static void parse_preload(const char* value, flag_type* flags)
+{
+    char* valueCopy = strdup(value); // strtok() sux
+    char delimiter[2] = ",";
+    char* save_ptr = NULL;
+    char* token = strtok_r(valueCopy, delimiter, &save_ptr);
+
+    while (token) {
+        int tokenFound = 0;
+        for (int i = 0; preload_infos[i].name; ++i) {
+            if (strcmp(token, preload_infos[i].name) == 0) {
+                ADD_FLAG(*flags, preload_infos[i].flag);
+                tokenFound = 1;
+                break;
+            }
+        }
+
+        if (!tokenFound) {
+            fprintf(stderr, "Warning: invalid preload flag `%s'\n", token);
+        }
+
+        token = strtok_r(NULL, delimiter, &save_ptr);
+    }
+
+    free(valueCopy);
+}
 
 size_t parse_size(const char* input)
 {
@@ -75,7 +114,7 @@ char** parse_arguments(int argc, char* argv[], struct pipefs_data* data,
     int option;
     optind = 0;
     while ((option =
-            getopt_long(argc, argv, "hc:C:l:kp:P:s:t:", options, NULL)) >= 0) {
+            getopt_long(argc, argv, "hc:C:l:ko:p:P:s:t:", options, NULL)) >= 0) {
         switch (option) {
         case 'h':
             print_usage(argv[0]);
@@ -94,6 +133,9 @@ char** parse_arguments(int argc, char* argv[], struct pipefs_data* data,
             break;
         case 'l':
             log_open(optarg);
+            break;
+        case 'o':
+            parse_preload(optarg, &data->flags);
             break;
         case 'p':
             data->pidfile = optarg;

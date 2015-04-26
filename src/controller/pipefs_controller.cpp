@@ -52,6 +52,15 @@ int pipefs_controller_open(pipefs_controller* controller, const char* filename,
     return 0;
 }
 
+void pipefs_controller_preload(struct pipefs_controller* controller,
+        const char* filename, const char* translated_path)
+{
+    TRY(
+        return reinterpret_cast<pipefs::Controller*>(controller)->preload(
+                filename, translated_path);
+    );
+}
+
 int pipefs_controller_read(pipefs_controller* controller,
         struct pipefs_filedata* data, void* buffer, size_t size, off_t offset)
 {

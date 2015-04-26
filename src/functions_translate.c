@@ -33,12 +33,17 @@ int pipefs_getattr(const char *path, struct stat *statbuf)
 
     if (translated_path) {
         int retstat = stat(translated_path, statbuf);
-        free(translated_path);
 
         if (retstat != 0) {
             retstat = pipefs_error("pipefs_getattr lstat");
+            free(translated_path);
             return retstat;
         }
+
+        if (IS_FLAG_SET(data->flags, FLAG_PRELOAD_STAT)) {
+            pipefs_controller_preload(data->controller, path, translated_path);
+        }
+        free(translated_path);
 
         pipefs_controller_correct_stat_info_file(data->controller, path,
                 statbuf);

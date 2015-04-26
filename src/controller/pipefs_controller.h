@@ -19,6 +19,8 @@ void pipefs_controller_destroy(struct pipefs_controller* controller);
 int pipefs_controller_open(struct pipefs_controller* controller,
         const char* filename, int fd, struct fuse_file_info* fi,
         struct pipefs_filedata** result);
+void pipefs_controller_preload(struct pipefs_controller* controller,
+        const char* filename, const char* translated_path);
 int pipefs_controller_read(struct pipefs_controller* controller,
         struct pipefs_filedata* data, void* buffer, size_t size, off_t offset);
 int pipefs_controller_release(struct pipefs_controller* controller,

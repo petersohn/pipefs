@@ -11,6 +11,14 @@
 
 namespace pipefs {
 
+namespace {
+
+auto finallyCloseFd(int fd) {
+    return util::finally([fd]() { ::close(fd); });
+}
+
+}
+
 Controller::Controller(const pipefs_data& data):
     ioThread{}, caches{}, signalHandler{ioThread.getIoService()},
     readLoop{ioThread.getIoService(), data.process_limit},
@@ -24,7 +32,7 @@ std::shared_ptr<boost::asio::posix::stream_descriptor> Controller::createCommand
         FileData* fileData, int inputFd, int flags,
         boost::asio::io_service& ioService)
 {
-    auto fdClose = util::finally([inputFd]() { close(inputFd); });
+    auto fdClose = finallyCloseFd(inputFd);
     log_msg("Starting command. fileData = %08x\n", fileData);
     int outputFd = spawnCommand(command, inputFd, flags, fileData);
 
@@ -53,12 +61,18 @@ void Controller::createCache(const char* key, int fd, int flags,
     fileData.cache = cacheResult.first;
     if (cacheResult.second) {
         log_msg("  New cache.\n");
-        using std::placeholders::_1;
-        readLoop.add(std::bind(&Controller::createCommand, this, nullptr,
-                checkedSystemCall(&dup, fd), flags, _1), fileData.cache);
+        addCacheToReadLoop(fd, flags, fileData.cache);
     } else {
         log_msg("  No new cache.\n");
     }
+}
+
+void Controller::addCacheToReadLoop(int fd, int flags,
+        const std::shared_ptr<Cache>& cache)
+{
+    using std::placeholders::_1;
+    readLoop.add(std::bind(&Controller::createCommand, this, nullptr,
+            checkedSystemCall(&dup, fd), flags, _1), cache);
 }
 
 FileData* Controller::open(const char* filename, int fd,
@@ -88,6 +102,31 @@ FileData* Controller::open(const char* filename, int fd,
     log_msg("    filedata=%08x -- fd=%d, offset=%d\n",
             data.get(), data->fd, data->currentOffset);
     return data.release();
+}
+
+void Controller::preload(const char* filename, const char* translatedPath)
+{
+    if (useCache) {
+        log_msg("  preload('%s', '%s')\n", filename, translatedPath);
+
+        auto cacheResult = caches.get(filename);
+        if (cacheResult.second) {
+            log_msg("    New cache.\n");
+            int flags = O_RDONLY;
+            int fd = ::open(translatedPath, flags);
+
+            if (fd < 0) {
+                log_msg("    Error: cannot open file. Error message = %s\n",
+                        strerror(errno));
+                return;
+            }
+
+            auto closeFd = finallyCloseFd(fd);
+            addCacheToReadLoop(fd, flags, cacheResult.first);
+        } else {
+            log_msg("    No new cache.\n");
+        }
+    }
 }
 
 int Controller::read(FileData* data, void* buffer, std::size_t size, off_t offset)

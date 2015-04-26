@@ -1,0 +1,26 @@
+#!/bin/bash
+
+command=cat
+
+custom_options+=(--preload=stat)
+
+function test_run()
+{
+    local filename=filename.1
+	local translated_filename=filename.2
+    local file_contents="This is the first line.
+This is the second line.
+This is the third line."
+    echo "$file_contents" >rootdir/$filename
+
+	stat mountpoint/$translated_filename >/dev/null
+	# the OS (or fuse?) seems to cache stat results for a time
+	sleep 1.1
+    local expected_file_size=$(stat --format %s rootdir/$filename)
+    read_file_size="$(stat --format %s mountpoint/$translated_filename)"
+    assert [ "$expected_file_size" == "$read_file_size" ]
+    assert_false lsof rootdir/$filename
+}
+
+
+

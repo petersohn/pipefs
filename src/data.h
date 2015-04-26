@@ -10,9 +10,12 @@ extern "C" {
 
 typedef uint32_t flag_type;
 
-#define FLAG_SEEKABLE 0x00000001
+#define FLAG_SEEKABLE           0x00000001
 // cache implies seekable
-#define FLAG_CACHE    0x00000003
+#define FLAG_CACHE              0x00000003
+
+#define FLAG_PRELOAD_STAT       0x00000004
+#define FLAG_PRELOAD_READDIR    0x00000008
 
 #define ADD_FLAG(flags, flag) (flags) = ((flags) | (flag))
 #define IS_FLAG_SET(flags, flag) (((flags) & (flag)) == (flag))

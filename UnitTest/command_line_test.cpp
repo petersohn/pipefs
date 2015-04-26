@@ -196,6 +196,56 @@ BOOST_AUTO_TEST_CASE(parse_cache)
     BOOST_CHECK(IS_FLAG_SET(data.flags, FLAG_CACHE));
 }
 
+BOOST_AUTO_TEST_CASE(parse_preload_none)
+{
+    const char* args[] = {"pipefs"};
+    result = parse_arguments(1, const_cast<char**>(args), &data, &resultLength);
+    BOOST_CHECK_EQUAL(resultLength, 1);
+    CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
+    BOOST_CHECK(!IS_FLAG_SET(data.flags, FLAG_PRELOAD_STAT));
+    BOOST_CHECK(!IS_FLAG_SET(data.flags, FLAG_PRELOAD_READDIR));
+}
+
+BOOST_AUTO_TEST_CASE(parse_preload_stat)
+{
+    const char* args[] = {"pipefs", "--preload", "stat"};
+    result = parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+    BOOST_CHECK_EQUAL(resultLength, 1);
+    CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
+    BOOST_CHECK(IS_FLAG_SET(data.flags, FLAG_PRELOAD_STAT));
+    BOOST_CHECK(!IS_FLAG_SET(data.flags, FLAG_PRELOAD_READDIR));
+}
+
+BOOST_AUTO_TEST_CASE(parse_preload_readdir)
+{
+    const char* args[] = {"pipefs", "--preload", "readdir"};
+    result = parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+    BOOST_CHECK_EQUAL(resultLength, 1);
+    CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
+    BOOST_CHECK(!IS_FLAG_SET(data.flags, FLAG_PRELOAD_STAT));
+    BOOST_CHECK(IS_FLAG_SET(data.flags, FLAG_PRELOAD_READDIR));
+}
+
+BOOST_AUTO_TEST_CASE(parse_preload_stat_readdir)
+{
+    const char* args[] = {"pipefs", "--preload", "stat,readdir"};
+    result = parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+    BOOST_CHECK_EQUAL(resultLength, 1);
+    CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
+    BOOST_CHECK(IS_FLAG_SET(data.flags, FLAG_PRELOAD_STAT));
+    BOOST_CHECK(IS_FLAG_SET(data.flags, FLAG_PRELOAD_READDIR));
+}
+
+BOOST_AUTO_TEST_CASE(parse_preload_readdir_stat)
+{
+    const char* args[] = {"pipefs", "--preload", "readdir,stat"};
+    result = parse_arguments(3, const_cast<char**>(args), &data, &resultLength);
+    BOOST_CHECK_EQUAL(resultLength, 1);
+    CHECK_ARRAY(result, STRINGIZE_SEQ(("pipefs")));
+    BOOST_CHECK(IS_FLAG_SET(data.flags, FLAG_PRELOAD_STAT));
+    BOOST_CHECK(IS_FLAG_SET(data.flags, FLAG_PRELOAD_READDIR));
+}
+
 BOOST_AUTO_TEST_CASE(parse_cache_limit)
 {
     std::string valueString = "463467";
