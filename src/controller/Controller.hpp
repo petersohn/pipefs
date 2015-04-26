@@ -28,6 +28,8 @@ public:
     FileData* open(const char* filename, int fd, struct fuse_file_info& fi);
     int read(FileData* data, void* buffer, std::size_t size, off_t offset);
     void release(const char* filename, FileData* data);
+    void correctStatInfo(const char* filename, struct stat* statInfo);
+    void correctStatInfo(FileData* data, struct stat* statInfo);
 private:
     IOThread ioThread;
     Caches caches;

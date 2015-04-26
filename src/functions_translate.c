@@ -13,6 +13,90 @@
 #include <string.h>
 
 
+/** Get file attributes.
+ *
+ * Similar to stat().  The 'st_dev' and 'st_blksize' fields are
+ * ignored.  The 'st_ino' field is ignored except if the 'use_ino'
+ * mount option is given.
+ */
+int pipefs_getattr(const char *path, struct stat *statbuf)
+{
+    log_msg(" \nbb_getattr(path=\"%s\", statbuf=0x%08x)\n", path, statbuf);
+
+    char fpath[PATH_MAX];
+    pipefs_fullpath(fpath, path);
+    CHECK_SOURCE_PATH(fpath);
+
+    struct pipefs_data* data = GET_DATA;
+    char* translated_path = translate_file(fpath, data->source_suffix,
+            data->target_suffix);
+
+    if (translated_path) {
+        int retstat = stat(translated_path, statbuf);
+        free(translated_path);
+
+        if (retstat != 0) {
+            retstat = pipefs_error("pipefs_getattr lstat");
+            return retstat;
+        }
+
+        pipefs_controller_correct_stat_info_file(data->controller, path,
+                statbuf);
+        return retstat;
+    }
+
+    int retstat = lstat(fpath, statbuf);
+    if (retstat != 0) {
+        retstat = pipefs_error("pipefs_getattr lstat");
+    }
+
+    return retstat;
+}
+
+/**
+ * Get attributes from an open file
+ *
+ * This method is called instead of the getattr() method if the
+ * file information is available.
+ *
+ * Currently this is only called after the create() method if that
+ * is implemented (see above).  Later it may be called for
+ * invocations of fstat() too.
+ *
+ * Introduced in version 2.5
+ */
+int pipefs_fgetattr(const char *path, struct stat *statbuf,
+        struct fuse_file_info *fi)
+{
+    int retstat = 0;
+
+    log_msg(" \nbb_fgetattr(path=\"%s\", statbuf=0x%08x, fi=0x%08x)\n",
+        path, statbuf, fi);
+
+    // On FreeBSD, trying to do anything with the mountpoint ends up
+    // opening it, and then using the FD for an fgetattr.  So in the
+    // special case of a path of "/", I need to do a getattr on the
+    // underlying root directory instead of doing the fgetattr().
+    if (!strcmp(path, "/"))
+    return pipefs_getattr(path, statbuf);
+
+    struct pipefs_basic_filedata* filedata =
+            (struct pipefs_basic_filedata*)(fi->fh);
+    struct pipefs_data* data = GET_DATA;
+
+    retstat = fstat(filedata->fd, statbuf);
+    if (filedata->data) {
+        pipefs_controller_correct_stat_info_fd(data->controller, filedata->data,
+                statbuf);
+    }
+
+    if (retstat < 0) {
+        retstat = pipefs_error("pipefs_fgetattr fstat");
+    }
+
+    return retstat;
+}
+
 /** File open operation
  *
  * No creation, or truncation flags (O_CREAT, O_EXCL, O_TRUNC)

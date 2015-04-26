@@ -48,6 +48,22 @@ BOOST_AUTO_TEST_CASE(add_then_get_different)
     BOOST_CHECK_EQUAL(MockCache::destroyedIds.count(id2), 0);
 }
 
+BOOST_AUTO_TEST_CASE(getIfPresent_returns_correct_value_for_existing_key)
+{
+    std::string key1 = "filename1";
+    auto result1 = caches.get(key1);
+    auto cache1 = result1.first;
+    BOOST_CHECK_EQUAL(caches.getIfPresent(key1).get(), cache1.get());
+}
+
+BOOST_AUTO_TEST_CASE(getIfPresent_returns_null_for_non_existing_key)
+{
+    std::string key1 = "filename1";
+    std::string key2 = "filename2";
+    caches.get(key1);
+    BOOST_CHECK_EQUAL(caches.getIfPresent(key2).get(), (MockCache*)nullptr);
+}
+
 BOOST_AUTO_TEST_CASE(cache_remains_active_after_release)
 {
     std::string key = "filename";

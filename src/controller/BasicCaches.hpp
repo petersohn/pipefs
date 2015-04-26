@@ -18,6 +18,13 @@ public:
         logger(std::move(logger)), timeUtil(std::move(timeUtil))
     {}
 
+    std::shared_ptr<Cache> getIfPresent(const std::string& key) const
+    {
+        std::unique_lock<std::mutex> lock{mutex};
+        auto it = caches.find(key);
+        return it == caches.end() ? std::shared_ptr<Cache>{} : it->second.cache;
+    }
+
     std::pair<std::shared_ptr<Cache>, bool> get(const std::string& key)
     {
         std::unique_lock<std::mutex> lock{mutex};
@@ -99,9 +106,9 @@ private:
         CacheData& operator=(CacheData&&) = default;
     };
 
-    std::mutex mutex;
+    mutable std::mutex mutex;
     std::map<std::string, CacheData> caches;
-    Logger logger;
+    mutable Logger logger;
     TimeUtil timeUtil;
 
     CacheData& add(const std::string& key)

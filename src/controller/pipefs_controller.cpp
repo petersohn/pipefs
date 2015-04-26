@@ -71,5 +71,25 @@ int pipefs_controller_release(pipefs_controller* controller,
     return 0;
 }
 
+int pipefs_controller_correct_stat_info_file(struct pipefs_controller* controller,
+        const char* filename, struct stat* statbuf)
+{
+    TRY_SYSTEM_ERROR("pipefs_controller_correct_stat_info_file",
+        reinterpret_cast<pipefs::Controller*>(controller)->correctStatInfo(
+                filename, statbuf);
+    );
+    return 0;
 }
+
+int pipefs_controller_correct_stat_info_fd(struct pipefs_controller* controller,
+        struct pipefs_filedata* data, struct stat* statbuf)
+{
+    TRY_SYSTEM_ERROR("pipefs_controller_correct_stat_info_fd",
+        reinterpret_cast<pipefs::Controller*>(controller)->correctStatInfo(
+                reinterpret_cast<pipefs::FileData*>(data), statbuf);
+    );
+    return 0;
+}
+
+} // extern "C"
 

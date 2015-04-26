@@ -131,5 +131,36 @@ void Controller::release(const char* filename, FileData* data)
     }
 }
 
+namespace {
+
+void modifyStatInfo(const Cache* cache, struct stat* statInfo)
+{
+    std::size_t size = (cache && cache->isFinished()) ? cache->getSize() : 0;
+
+    log_msg("    correct stat info. Calculated size = %d. cache = 0x%08x\n",
+            size, cache);
+    statInfo->st_mode = S_IFREG | (statInfo->st_mode & 0444);
+    statInfo->st_size = size;
+    statInfo->st_blocks = size / 512 + ((size % 512) ? 1 : 0);
 }
+
+} // unnamed namespace
+
+void Controller::correctStatInfo(const char* filename, struct stat* statInfo)
+{
+    Cache* cache = nullptr;
+
+    if (useCache) {
+        cache = caches.getIfPresent(filename).get();
+    }
+
+    modifyStatInfo(cache, statInfo);
+}
+
+void Controller::correctStatInfo(FileData* data, struct stat* statInfo)
+{
+    modifyStatInfo(data->cache.get(), statInfo);
+}
+
+} // namespace pipefs
 
