@@ -11,7 +11,7 @@
 #include <fuse.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <dirent.h>
 
 /** Get file attributes.
  *
@@ -98,6 +98,93 @@ int pipefs_fgetattr(const char *path, struct stat *statbuf,
     if (retstat < 0) {
         retstat = pipefs_error("pipefs_fgetattr fstat");
     }
+
+    return retstat;
+}
+
+/** Read directory
+ *
+ * This supersedes the old getdir() interface.  New applications
+ * should use this.
+ *
+ * The filesystem may choose between two modes of operation:
+ *
+ * 1) The readdir implementation ignores the offset parameter, and
+ * passes zero to the filler function's offset.  The filler
+ * function will not return '1' (unless an error happens), so the
+ * whole directory is read in a single readdir operation.  This
+ * works just like the old getdir() method.
+ *
+ * 2) The readdir implementation keeps track of the offsets of the
+ * directory entries.  It uses the offset parameter and always
+ * passes non-zero offset to the filler function.  When the buffer
+ * is full (or an error happens) the filler function will return
+ * '1'.
+ *
+ * Introduced in version 2.3
+ */
+int pipefs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
+        off_t offset, struct fuse_file_info *fi)
+{
+    int retstat = 0;
+    DIR *dp;
+    struct dirent *de;
+
+    log_msg(" \nbb_readdir(path=\"%s\", buf=0x%08x, filler=0x%08x, "
+            "offset=%lld, fi=0x%08x)\n", path, buf, filler, offset, fi);
+    // once again, no need for fullpath -- but note that I need to cast fi->fh
+    dp = (DIR *) (uintptr_t) fi->fh;
+
+    // Every directory contains at least two entries: . and ..  If my
+    // first call to the system readdir() returns NULL I've got an
+    // error; near as I can tell, that's the only condition under
+    // which I can get an error from readdir()
+    de = readdir(dp);
+    if (de == 0) {
+        retstat = pipefs_error("pipefs_readdir readdir");
+        return retstat;
+    }
+
+    // This will copy the entire directory into the buffer.  The loop exits
+    // when either the system readdir() returns NULL, or filler()
+    // returns something non-zero.  The first case just means I've
+    // read the whole directory; the second means the buffer is full.
+    do {
+        struct pipefs_data* data = GET_DATA;
+        char* real_name = translate_suffix(de->d_name, data->source_suffix,
+            data->target_suffix);
+
+        log_msg("calling filler with name %s\n", de->d_name);
+        int filler_result = filler(buf, real_name ? real_name : de->d_name,
+            NULL, 0);
+
+        if (real_name && IS_FLAG_SET(data->flags, FLAG_PRELOAD_READDIR)) {
+            char canonical_path[PATH_MAX];
+            strncpy(canonical_path, path, PATH_MAX);
+            if (canonical_path[strlen(canonical_path) - 1] != '/') {
+                strncat(canonical_path, "/", PATH_MAX);
+            }
+            strncat(canonical_path, real_name, PATH_MAX);
+
+            char full_path[PATH_MAX];
+            strncpy(full_path, data->rootdir, PATH_MAX);
+            strncat(full_path, path, PATH_MAX);
+            if (full_path[strlen(full_path) - 1] != '/') {
+                strncat(full_path, "/", PATH_MAX);
+            }
+            strncat(full_path, de->d_name, PATH_MAX);
+
+            pipefs_controller_preload(data->controller, canonical_path,
+                    full_path);
+        }
+
+        free(real_name);
+
+        if (filler_result != 0) {
+            log_msg("    ERROR pipefs_readdir filler:  buffer full");
+            return -ENOMEM;
+        }
+    } while ((de = readdir(dp)) != NULL);
 
     return retstat;
 }

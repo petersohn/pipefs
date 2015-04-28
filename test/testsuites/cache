@@ -33,6 +33,8 @@ function get_test_cases()
 	echo "testcases/translation_starts_if_queued_task_is_interrupted"
 	echo "testcases/size_is_calculated_correctly_after_a_successful_read"
 	echo "testcases/size_is_calculated_correctly_after_stat_if_preload_is_set"
+	echo "testcases/size_is_calculated_correctly_after_readdir_if_preload_is_set"
+	echo "testcases/size_is_calculated_correctly_after_readdir_in_subdirectory_if_preload_is_set"
 }
 
 
