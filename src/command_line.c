@@ -174,23 +174,26 @@ char** parse_arguments(int argc, char* argv[], struct pipefs_data* data,
 void print_usage(const char* program_name)
 {
     fprintf(stderr, "Usage:  %s options... [ -- mountoptions... ] mountpoint\n"
-                    "\n"
-                    "Options:\n"
-                    "    --help             Print a help message then exit.\n"
-                    "    --command          The filter command. Mandatory.\n"
-            "    --cache            Use caching. Implies --seekable.\n"
-            "    --cache-limit      The maximum total size of the cache.\n"
-                    "    --log-file         The file to log to. Optional. If not\n"
-                    "                       provided, no logging is performed.\n"
-            "    --pidfile          Store the pid of the process in this file.\n"
-                    "    --root-dir         The directory to be mapped.\n"
-                    "                       Mandatory.\n"
-            "    --seekable         Allow seeking in the translated files.\n"
-                    "    --source-suffix    The suffix of the files to be\n"
-                    "                       transformed. Mandatory.\n"
-                    "    --target-suffix    The suffix of the transformed files.\n"
-                    "                       Mandatory.\n"
-                    "\n",
+            "\n"
+            "Options:\n"
+            "    --help                 Print a help message then exit.\n\n"
+            "    --command <cmd>        The filter command. Mandatory.\n\n"
+            "    --cache                Use caching. Implies --seekable.\n\n"
+            "    --cache-limit <num>   The maximum total size of the cache.\n\n"
+            "    --log-file <filename>  The file to log to. Optional. If not\n"
+            "                           provided, no logging is performed.\n\n"
+            "    --pidfile <filename>   Store the pid of the process in this file.\n\n"
+            "    --preload <values>     Preload the file before opening it.\n"
+            "                           Only works with --cache. Multiple values\n"
+            "                           can be separated by commas.\n"
+            "                           Possible values: stat, readdir\n\n"
+            "    --root-dir <dir>       The directory to be mapped.\n"
+            "                           Mandatory.\n\n"
+            "    --seekable             Allow seeking in the translated files.\n\n"
+            "    --source-suffix <val>  The suffix of the files to be\n"
+            "                           transformed. Mandatory.\n\n"
+            "    --target-suffix <val>  The suffix of the transformed files.\n"
+            "                           Mandatory.\n\n",
             program_name);
 }
 
