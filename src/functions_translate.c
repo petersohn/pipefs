@@ -43,6 +43,10 @@ int pipefs_getattr(const char *path, struct stat *statbuf)
         if (IS_FLAG_SET(data->flags, FLAG_PRELOAD_STAT)) {
             pipefs_controller_preload(data->controller, path, translated_path);
         }
+        if (IS_FLAG_SET(data->flags, FLAG_WAIT_ON_STAT)) {
+            pipefs_controller_wait_until_finished_file(data->controller, path);
+        }
+
         free(translated_path);
 
         pipefs_controller_correct_stat_info_file(data->controller, path,
@@ -93,6 +97,11 @@ int pipefs_fgetattr(const char *path, struct stat *statbuf,
     if (filedata->data) {
         pipefs_controller_correct_stat_info_fd(data->controller, filedata->data,
                 statbuf);
+
+        if (IS_FLAG_SET(data->flags, FLAG_WAIT_ON_STAT)) {
+            pipefs_controller_wait_until_finished_fd(data->controller,
+                    filedata->data);
+        }
     }
 
     if (retstat < 0) {

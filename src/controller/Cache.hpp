@@ -14,6 +14,7 @@ public:
     void finish();
     bool isFinished() const;
     std::size_t getSize() const;
+    void waitUntilFinished() const;
 
     Cache() = default;
     Cache(const Cache&) = delete;

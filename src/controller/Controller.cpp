@@ -201,5 +201,17 @@ void Controller::correctStatInfo(FileData* data, struct stat* statInfo)
     modifyStatInfo(data->cache.get(), statInfo);
 }
 
+void Controller::waitUntilFinished(const char* filename)
+{
+    auto cache = caches.getIfPresent(filename);
+    assert(cache);
+    cache->waitUntilFinished();
+}
+
+void Controller::waitUntilFinished(FileData* data)
+{
+    data->cache->waitUntilFinished();
+}
+
 } // namespace pipefs
 

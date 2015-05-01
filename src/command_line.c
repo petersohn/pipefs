@@ -22,6 +22,7 @@ static struct option options[] = {
     {"seekable",      no_argument,       NULL, 'k'},
     {"source-suffix", required_argument, NULL, 's'},
     {"target-suffix", required_argument, NULL, 't'},
+    {"wait-on-stat",  no_argument,       NULL, 'w'},
     {NULL, 0, NULL, 0}
 };
 
@@ -152,6 +153,9 @@ char** parse_arguments(int argc, char* argv[], struct pipefs_data* data,
         case 't':
             data->target_suffix = optarg;
             break;
+        case 'w':
+            ADD_FLAG(data->flags, FLAG_WAIT_ON_STAT);
+            break;
         default:
             fprintf(stderr, "Invalid argument found.\n");
             print_usage(argv[0]);
@@ -193,7 +197,10 @@ void print_usage(const char* program_name)
             "    --source-suffix <val>  The suffix of the files to be\n"
             "                           transformed. Mandatory.\n\n"
             "    --target-suffix <val>  The suffix of the transformed files.\n"
-            "                           Mandatory.\n\n",
+            "                           Mandatory.\n\n"
+            "    --wait-on-stat         When running stat, wait until the read is\n"
+            "                           finished. Only works with --cache.\n"
+            "                           Implies --preload=stat.\n\n",
             program_name);
 }
 

@@ -35,6 +35,7 @@ function get_test_cases()
 	echo "testcases/size_is_calculated_correctly_after_stat_if_preload_is_set"
 	echo "testcases/size_is_calculated_correctly_after_readdir_if_preload_is_set"
 	echo "testcases/size_is_calculated_correctly_after_readdir_in_subdirectory_if_preload_is_set"
+	echo "testcases/size_is_calculated_correctly_if_wait_is_set"
 }
 
 

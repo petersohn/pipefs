@@ -31,6 +31,8 @@ public:
     void release(const char* filename, FileData* data);
     void correctStatInfo(const char* filename, struct stat* statInfo);
     void correctStatInfo(FileData* data, struct stat* statInfo);
+    void waitUntilFinished(const char* filename);
+    void waitUntilFinished(FileData* data);
 private:
     IOThread ioThread;
     Caches caches;

@@ -29,6 +29,10 @@ int pipefs_controller_correct_stat_info_file(struct pipefs_controller* controlle
         const char* filename, struct stat* statbuf);
 int pipefs_controller_correct_stat_info_fd(struct pipefs_controller* controller,
         struct pipefs_filedata* data, struct stat* statbuf);
+void pipefs_controller_wait_until_finished_file(struct pipefs_controller* controller,
+        const char* filename);
+void pipefs_controller_wait_until_finished_fd(struct pipefs_controller* controller,
+        struct pipefs_filedata* data);
 
 
 #ifdef __cplusplus

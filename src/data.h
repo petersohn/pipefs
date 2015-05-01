@@ -17,6 +17,9 @@ typedef uint32_t flag_type;
 #define FLAG_PRELOAD_STAT       0x00000004
 #define FLAG_PRELOAD_READDIR    0x00000008
 
+// wait on stat implies preload on stat
+#define FLAG_WAIT_ON_STAT       0x00000014
+
 #define ADD_FLAG(flags, flag) (flags) = ((flags) | (flag))
 #define IS_FLAG_SET(flags, flag) (((flags) & (flag)) == (flag))
 

@@ -100,5 +100,23 @@ int pipefs_controller_correct_stat_info_fd(struct pipefs_controller* controller,
     return 0;
 }
 
+void pipefs_controller_wait_until_finished_file(struct pipefs_controller* controller,
+        const char* filename)
+{
+    TRY(
+        reinterpret_cast<pipefs::Controller*>(controller)->waitUntilFinished(
+                filename);
+   )
+}
+
+void pipefs_controller_wait_until_finished_fd(struct pipefs_controller* controller,
+        struct pipefs_filedata* data)
+{
+    TRY(
+        reinterpret_cast<pipefs::Controller*>(controller)->waitUntilFinished(
+                reinterpret_cast<pipefs::FileData*>(data));
+   )
+}
+
 } // extern "C"
 

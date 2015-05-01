@@ -64,5 +64,15 @@ std::size_t Cache::getSize() const
     return data.size();
 }
 
+void Cache::waitUntilFinished() const
+{
+    log_msg("Cache::waitUntilFinished(this=%p)", this);
+    std::unique_lock<std::mutex> lock{mutex};
+
+    while (!finished) {
+        readWaiter.wait(lock);
+    }
 }
+
+} // namespace pipefs
 
