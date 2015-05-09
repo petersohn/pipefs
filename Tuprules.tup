@@ -3,8 +3,18 @@
 
 export HOME
 
-CC = @(C_COMPILER)
-CXX = @(COMPILER)
+ifeq (@(COMPILER),)
+    CXX = g++
+else
+    CXX = @(COMPILER)
+endif
+
+ifeq (@(C_COMPILER),)
+    CC = gcc
+else
+    CC = @(C_COMPILER)
+endif
+
 LD = $(CXX)
 
 COMPILE_TUP = $(TUP_CWD)/compile.tup
