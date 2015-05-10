@@ -15,5 +15,5 @@ CPP_FLAGS += $EXTRA_CPP_FLAGS
 INCLUDE_DIRS += -I$(SOURCE_DIR)
 INCLUDE_DIRS += -I$(CPP_UTIL_DIR)/include
 
-!cc = |> ^ CC %f^ $(CC) $(C_FLAGS) $(INCLUDE_DIRS) -c %f -o %o |> %B.o
-!cxx = |> ^ CXX %f^ $(CXX) $(CPP_FLAGS) $(INCLUDE_DIRS) -c %f -o %o |> %B.o
+!cc = |> ^ CC %f^ $(CC) $(C_FLAGS) $(INCLUDE_DIRS) -c -o %o %f |> %B.o
+!cxx = |> ^ CXX %f^ $(CXX) $(CPP_FLAGS) $(INCLUDE_DIRS) -c -o %o %f |> %B.o
