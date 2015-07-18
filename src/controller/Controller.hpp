@@ -36,7 +36,7 @@ public:
 private:
     IOThread ioThread;
     Caches caches;
-    SignalHandler signalHandler;
+    std::shared_ptr<SignalHandler> signalHandler;
     ReadLoop readLoop;
 
     const char* command;

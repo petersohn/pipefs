@@ -4,9 +4,11 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/signal_set.hpp>
 
+#include <memory>
+
 namespace pipefs {
 
-class SignalHandler {
+class SignalHandler: public std::enable_shared_from_this<SignalHandler> {
 public:
     SignalHandler(boost::asio::io_service& ioService);
     SignalHandler(const SignalHandler&) = delete;

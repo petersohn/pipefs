@@ -20,11 +20,16 @@ auto finallyCloseFd(int fd) {
 }
 
 Controller::Controller(const pipefs_data& data):
-    ioThread{}, caches{}, signalHandler{ioThread.getIoService()},
+    ioThread{},
+    caches{},
+    signalHandler{std::make_shared<SignalHandler>(ioThread.getIoService())},
     readLoop{ioThread.getIoService(), data.process_limit},
-    command(data.command), seekable(IS_FLAG_SET(data.flags, FLAG_SEEKABLE)),
-    useCache(IS_FLAG_SET(data.flags, FLAG_CACHE)), cacheSize(data.cache_limit)
+    command(data.command),
+    seekable(IS_FLAG_SET(data.flags, FLAG_SEEKABLE)),
+    useCache(IS_FLAG_SET(data.flags, FLAG_CACHE)),
+    cacheSize(data.cache_limit)
 {
+    signalHandler->start();
     ioThread.start();
 }
 
@@ -50,7 +55,7 @@ std::shared_ptr<boost::asio::posix::stream_descriptor> Controller::createCommand
 Controller::~Controller()
 {
     readLoop.cancel();
-    signalHandler.cancel();
+    signalHandler->cancel();
     ioThread.stop();
 }
 
