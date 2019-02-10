@@ -11,7 +11,6 @@
 
 #include "config.hpp"
 #include "detail/sequence_impl.hpp"
-#include <boost/make_shared.hpp>
 
 namespace mock
 {

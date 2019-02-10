@@ -10,13 +10,13 @@
 #define MOCK_ACTION_HPP_INCLUDED
 
 #include "../config.hpp"
-#include "lambda.hpp"
 #include <boost/type_traits/remove_reference.hpp>
 #include <boost/type_traits/remove_const.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/move/move.hpp>
 #include <boost/function.hpp>
+#include <boost/bind.hpp>
 #include <boost/ref.hpp>
 
 namespace mock
@@ -28,12 +28,20 @@ namespace detail
     {
     private:
         typedef boost::function< Signature > functor_type;
-        typedef lambda< Result, Signature > lambda_type;
+        typedef boost::function< Result() > action_type;
 
     public:
         const functor_type& functor() const
         {
             return f_;
+        }
+        bool valid() const
+        {
+            return f_ || a_;
+        }
+        Result trigger() const
+        {
+            return a_();
         }
 
         void calls( const functor_type& f )
@@ -46,42 +54,44 @@ namespace detail
         template< typename Exception >
         void throws( Exception e )
         {
-            f_ = lambda_type::make_throw( e );
+            a_ = boost::bind( &do_throw< Exception >, e );
         }
 
     protected:
-        void set( const functor_type& f )
+        void set( const action_type& a )
         {
-            f_ = f;
+            a_ = a;
         }
         template< typename Y >
         void set( const boost::reference_wrapper< Y >& r )
         {
-            f_ = lambda_type::make_ref( r );
+            a_ = boost::bind( &do_ref< Y >, r.get_pointer() );
+        }
+
+    private:
+        template< typename T >
+        static T& do_ref( T* t )
+        {
+            return *t;
+        }
+        template< typename T >
+        static Result do_throw( T t )
+        {
+            throw t;
         }
 
         functor_type f_;
+        action_type a_;
     };
 
     template< typename Result, typename Signature >
     class action : public action_base< Result, Signature >
     {
-        typedef lambda< Result, Signature > lambda_type;
-
     public:
         template< typename Value >
         void returns( const Value& v )
         {
-            returns( boost::ref( v_.store( v ) ) );
-        }
-        template< typename Value >
-        void returns( Value* v )
-        {
-            typedef typename
-                boost::remove_reference<
-                    typename boost::remove_const< Result >::type
-                >::type result_type;
-            returns( result_type( v ) );
+            this->set( boost::ref( store( v ) ) );
         }
         template< typename Y >
         void returns( const boost::reference_wrapper< Y >& r )
@@ -93,75 +103,74 @@ namespace detail
         void moves( BOOST_RV_REF( Value ) v )
         {
             this->set(
-                lambda_type::make_move( v_.store( boost::move( v ) ) ) );
+                boost::bind(
+                    &boost::move< BOOST_RV_REF( Value ) >,
+                    boost::ref( store( boost::move( v ) ) ) ) );
         }
 
     private:
-        struct holder : boost::noncopyable
+        struct value : boost::noncopyable
         {
-            virtual ~holder()
+            virtual ~value()
             {}
         };
         template< typename T >
-        struct holder_imp : holder
+        struct value_imp : value
         {
-            holder_imp( BOOST_RV_REF( T ) t )
+            typedef
+                typename boost::remove_const<
+                    typename boost::remove_reference<
+                        T
+                    >::type
+                >::type value_type;
+
+            value_imp( BOOST_RV_REF( value_type ) t )
                 : t_( boost::move( t ) )
             {}
-            holder_imp( const T& t )
+            value_imp( const T& t )
                 : t_( t )
             {}
-            T t_;
+            template< typename Y >
+            value_imp( Y* y )
+                : t_( y )
+            {}
+            value_type t_;
         };
 
-        struct value
+        template< typename T >
+        T& store( BOOST_RV_REF( T ) t )
         {
-            template< typename T >
-            T& store( BOOST_RV_REF( T ) t )
-            {
-                h_.reset( new holder_imp< T >( boost::move( t ) ) );
-                return static_cast< holder_imp< T >* >( h_.get() )->t_;
-            }
-            template< typename T >
-            T& store( const T& t )
-            {
-                h_.reset( new holder_imp< T >( t ) );
-                return static_cast< holder_imp< T >* >( h_.get() )->t_;
-            }
-            boost::shared_ptr< holder > h_;
-        };
-
-        value v_;
-    };
-
-    template< typename Result, typename Signature >
-    class action< Result*, Signature >
-        : public action_base< Result*, Signature >
-    {
-        typedef lambda< Result*, Signature > lambda_type;
-
-    public:
-        void returns( Result* r )
-        {
-            this->set( lambda_type::make_val( r ) );
+            v_.reset( new value_imp< T >( boost::move( t ) ) );
+            return static_cast< value_imp< T >& >( *v_ ).t_;
         }
-        template< typename Y >
-        void returns( const boost::reference_wrapper< Y >& r )
+        template< typename T >
+        T& store( const T& t )
         {
-            this->set( r );
+            v_.reset( new value_imp< T >( t ) );
+            return static_cast< value_imp< T >& >( *v_ ).t_;
         }
+        template< typename T >
+        Result& store( T* t )
+        {
+            v_.reset( new value_imp< Result >( t ) );
+            return static_cast< value_imp< Result >& >( *v_ ).t_;
+        }
+
+        boost::shared_ptr< value > v_;
     };
 
     template< typename Signature >
     class action< void, Signature > : public action_base< void, Signature >
     {
-        typedef lambda< void, Signature > lambda_type;
-
     public:
         action()
         {
-            this->set( lambda_type::make_nothing() );
+            this->set( boost::bind( &do_nothing ) );
         }
+
+    private:
+        static void do_nothing()
+        {}
     };
 
     template< typename Result, typename Signature >
@@ -182,13 +191,13 @@ namespace detail
         void returns( Y* r )
         {
             v_.reset( r );
-            returns( boost::ref( v_ ) );
+            this->set( boost::ref( v_ ) );
         }
         template< typename Y >
         void returns( std::auto_ptr< Y > r )
         {
             v_ = r;
-            returns( boost::ref( v_ ) );
+            this->set( boost::ref( v_ ) );
         }
         template< typename Y >
         void returns( const boost::reference_wrapper< Y >& r )

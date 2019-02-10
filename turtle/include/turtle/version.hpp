@@ -6,4 +6,4 @@
 // (See accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 
-#define MOCK_VERSION 1.2.6
+#define MOCK_VERSION 1.3.0

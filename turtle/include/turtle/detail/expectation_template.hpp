@@ -6,44 +6,115 @@
 // (See accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 
-#define MOCK_EXPECTATION_TYPEDEF(z, n, d) \
-    typedef T##n arg##n##_type;
+#include "matcher_base_template.hpp"
 
 #define MOCK_EXPECTATION_INITIALIZE(z, n, d) \
-    BOOST_PP_COMMA_IF(n) c##n##_( \
-        boost::make_shared< \
-            matcher< arg##n##_type, constraint< any > > >( mock::any ) )
-
-#define MOCK_EXPECTATION_WITH(z, n, d) \
-    c##n##_ = boost::make_shared< \
-        matcher< arg##n##_type, Constraint_##n > >( c##n );
+    BOOST_PP_COMMA_IF(n) c##n##_( c##n )
 
 #define MOCK_EXPECTATION_MEMBER(z, n, d) \
-    boost::shared_ptr< matcher_base< arg##n##_type > > c##n##_;
-
-#define MOCK_EXPECTATION_ARGS(z, n, d) \
-    BOOST_PP_COMMA_IF(n) arg##n##_type a##n
+    matcher< T##n, Constraint_##n > c##n##_;
 
 #define MOCK_EXPECTATION_IS_VALID(z, n, d) \
-    && (*c##n##_)( a##n )
+    BOOST_PP_IF(n, &&,) c##n##_( a##n )
 
 #define MOCK_EXPECTATION_SERIALIZE(z, n, d) \
-    BOOST_PP_IF(n, << ", " <<,) *m.c##n##_
+    BOOST_PP_IF(n, << ", " <<,) c##n##_
 
-#define MOCK_EXPECTATION_IN_ADD(z, n, d ) \
-    s##n.impl_->add( this ); sequences_.push_back( s##n.impl_ );
-
-#define MOCK_EXPECTATION_IN(z, n, d) \
-    expectation& in( BOOST_PP_ENUM_PARAMS(n, sequence& s) ) \
-    { \
-        BOOST_PP_REPEAT(n, MOCK_EXPECTATION_IN_ADD, _ ) \
-        return *this; \
-    }
+#define MOCK_EXPECTATION_SERIALIZE_ANY(z, n, d) \
+    BOOST_PP_IF(n, << ", " <<,) "any"
 
 namespace mock
 {
 namespace detail
 {
+    template< typename Signature > class default_matcher;
+
+    template<
+        BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, typename T) >
+    class default_matcher< void( BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, T) ) >
+        : public matcher_base< void( BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, T) ) >
+    {
+    private:
+        virtual bool operator()(
+            BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, T) )
+        {
+            return true;
+        }
+        virtual void serialize( std::ostream& s ) const
+        {
+            s << "" BOOST_PP_REPEAT(MOCK_NUM_ARGS,
+                MOCK_EXPECTATION_SERIALIZE_ANY, _ );
+        }
+    };
+
+#ifndef MOCK_NUM_ARGS_0
+
+    template< typename Constraint, typename Signature > class single_matcher;
+
+    template<
+        BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, typename Constraint_),
+        BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, typename T)
+    >
+    class single_matcher<
+        void( BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, Constraint_) ),
+        void( BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, T) )
+    >
+        : public matcher_base< void( BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, T) ) >
+    {
+    public:
+        single_matcher(
+            BOOST_PP_ENUM_BINARY_PARAMS(MOCK_NUM_ARGS, Constraint_, c) )
+        : BOOST_PP_REPEAT(MOCK_NUM_ARGS,
+            MOCK_EXPECTATION_INITIALIZE, _)
+        {}
+
+    private:
+        virtual bool operator()(
+            BOOST_PP_ENUM_BINARY_PARAMS(MOCK_NUM_ARGS, T, a) )
+        {
+            return BOOST_PP_REPEAT(MOCK_NUM_ARGS,
+                MOCK_EXPECTATION_IS_VALID, _);
+        }
+        virtual void serialize( std::ostream& s ) const
+        {
+            s << BOOST_PP_REPEAT(MOCK_NUM_ARGS,
+                MOCK_EXPECTATION_SERIALIZE, _ );
+        }
+
+    private:
+        BOOST_PP_REPEAT(
+            MOCK_NUM_ARGS, MOCK_EXPECTATION_MEMBER, _ )
+};
+
+    template< typename F, typename Signature > class multi_matcher;
+
+    template< typename F,
+        BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, typename T) >
+    class multi_matcher< F, void( BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, T) ) >
+        : public matcher_base< void( BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS,T) ) >
+    {
+    public:
+        multi_matcher( const F& f )
+            : f_( f )
+        {}
+
+    private:
+        virtual bool operator()(
+            BOOST_PP_ENUM_BINARY_PARAMS( MOCK_NUM_ARGS, T, a ) )
+        {
+            return f_( BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, a ) );
+        }
+        virtual void serialize( std::ostream& s ) const
+        {
+            s << mock::format( f_ );
+        }
+
+    private:
+        F f_;
+    };
+
+#endif
+
     template< typename Signature > class expectation;
 
     template< typename R
@@ -51,23 +122,26 @@ namespace detail
     class expectation< R (BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS,T)) >
         : public action< R, R (BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS,T)) >
     {
-        BOOST_PP_REPEAT(MOCK_NUM_ARGS,
-            MOCK_EXPECTATION_TYPEDEF, _)
-
     public:
         expectation()
-            : BOOST_PP_REPEAT(MOCK_NUM_ARGS,
-                MOCK_EXPECTATION_INITIALIZE, _)
-            BOOST_PP_COMMA_IF(MOCK_NUM_ARGS)
-                i_( boost::make_shared< unlimited >() )
+            : invocation_( boost::make_shared< unlimited >() )
+            , matcher_(
+                boost::make_shared<
+                    default_matcher<
+                        void( BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, T) )
+                    >
+                > () )
             , file_( "unknown location" )
             , line_( 0 )
         {}
         expectation( const char* file, int line )
-            : BOOST_PP_REPEAT(MOCK_NUM_ARGS,
-                MOCK_EXPECTATION_INITIALIZE, _)
-            BOOST_PP_COMMA_IF(MOCK_NUM_ARGS)
-                i_( boost::make_shared< unlimited >() )
+            : invocation_( boost::make_shared< unlimited >() )
+            , matcher_(
+                boost::make_shared<
+                    default_matcher<
+                        void( BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, T) )
+                    >
+                > () )
             , file_( file )
             , line_( line )
         {}
@@ -79,35 +153,9 @@ namespace detail
                 (*it)->remove( this );
         }
 
-        expectation& once()
+        void invoke( const boost::shared_ptr< invocation >& i )
         {
-            i_ = boost::make_shared< detail::once >();
-            return *this;
-        }
-        expectation& never()
-        {
-            i_ = boost::make_shared< detail::never >();
-            return *this;
-        }
-        expectation& exactly( std::size_t count )
-        {
-            i_ = boost::make_shared< detail::exactly >( count );
-            return *this;
-        }
-        expectation& at_least( std::size_t min )
-        {
-            i_ = boost::make_shared< detail::at_least >( min );
-            return *this;
-        }
-        expectation& at_most( std::size_t max )
-        {
-            i_ = boost::make_shared< detail::at_most >( max );
-            return *this;
-        }
-        expectation& between( std::size_t min, std::size_t max )
-        {
-            i_ = boost::make_shared< detail::between >( min, max );
-            return *this;
+            invocation_ = i;
         }
 
 #ifndef MOCK_NUM_ARGS_0
@@ -117,27 +165,43 @@ namespace detail
         expectation& with(
             BOOST_PP_ENUM_BINARY_PARAMS(MOCK_NUM_ARGS, Constraint_, c) )
         {
-            BOOST_PP_REPEAT(MOCK_NUM_ARGS,
-                MOCK_EXPECTATION_WITH, _)
+            matcher_.reset(
+                new single_matcher<
+                    void( BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, Constraint_) ),
+                    void( BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, T) )
+                >( BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, c) ) );
+            return *this;
+        }
+#if MOCK_NUM_ARGS > 1
+        template< typename Constraint >
+        expectation& with( const Constraint& c )
+        {
+            matcher_.reset(
+                new multi_matcher<
+                    Constraint,
+                    void( BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, T) )
+                >( c ) );
             return *this;
         }
 #endif
+#endif
 
-        BOOST_PP_REPEAT(MOCK_MAX_SEQUENCES,
-            MOCK_EXPECTATION_IN, _)
+        void add( sequence& s )
+        {
+            s.impl_->add( this );
+            sequences_.push_back( s.impl_ );
+        }
 
         bool verify() const
         {
-            return i_->verify();
+            return invocation_->verify();
         }
 
         bool is_valid(
-            BOOST_PP_REPEAT(MOCK_NUM_ARGS,
-                MOCK_EXPECTATION_ARGS, _) ) const
+            BOOST_PP_ENUM_BINARY_PARAMS(MOCK_NUM_ARGS, T, a) ) const
         {
-            return ! i_->exhausted()
-                BOOST_PP_REPEAT(MOCK_NUM_ARGS,
-                    MOCK_EXPECTATION_IS_VALID, _);
+            return !invocation_->exhausted()
+                && (*matcher_)( BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, a) );
         }
 
         bool invoke() const
@@ -146,7 +210,7 @@ namespace detail
                 it != sequences_.end(); ++it )
                 if( ! (*it)->is_valid( this ) )
                     return false;
-            bool result = i_->invoke();
+            bool result = invocation_->invoke();
             for( sequences_cit it = sequences_.begin();
                 it != sequences_.end(); ++it )
                 (*it)->invalidate( this );
@@ -163,15 +227,12 @@ namespace detail
         }
 
         friend std::ostream& operator<<(
-            std::ostream& s, const expectation& m )
+            std::ostream& s, const expectation& e )
         {
-            return s << (m.i_->exhausted() ? 'v' : '.')
-                << ' ' << *m.i_
+            return s << ( e.invocation_->exhausted() ? 'v' : '.' )
+                << ' ' << *e.invocation_
 #ifndef MOCK_NUM_ARGS_0
-                << ".with( "
-                << BOOST_PP_REPEAT(MOCK_NUM_ARGS,
-                    MOCK_EXPECTATION_SERIALIZE, _)
-                << " )"
+                << ".with( " << *e.matcher_ << " )"
 #endif
                 ;
         }
@@ -182,9 +243,12 @@ namespace detail
         > sequences_type;
         typedef sequences_type::const_iterator sequences_cit;
 
-        BOOST_PP_REPEAT(
-            MOCK_NUM_ARGS, MOCK_EXPECTATION_MEMBER, _)
-        boost::shared_ptr< invocation > i_;
+        boost::shared_ptr< invocation > invocation_;
+        boost::shared_ptr<
+            matcher_base<
+                void( BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, T) )
+            >
+        > matcher_;
         sequences_type sequences_;
         const char* file_;
         int line_;
@@ -192,12 +256,8 @@ namespace detail
 }
 } // mock
 
-#undef MOCK_EXPECTATION_TYPEDEF
 #undef MOCK_EXPECTATION_INITIALIZE
-#undef MOCK_EXPECTATION_WITH
 #undef MOCK_EXPECTATION_MEMBER
-#undef MOCK_EXPECTATION_ARGS
 #undef MOCK_EXPECTATION_IS_VALID
 #undef MOCK_EXPECTATION_SERIALIZE
-#undef MOCK_EXPECTATION_IN
-#undef MOCK_EXPECTATION_IN_ADD
+#undef MOCK_EXPECTATION_SERIALIZE_ANY

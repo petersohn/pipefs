@@ -38,9 +38,6 @@ namespace detail
     {
     public:
         typedef safe_error< R, MOCK_ERROR_POLICY< R > > error_type;
-        typedef expectation<
-                    R ( BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, T) )
-                > expectation_type;
 
     public:
         function_impl()
@@ -90,42 +87,49 @@ namespace detail
         }
 
     private:
-        template< typename T >
-        struct wrapper : wrapper_base< T, expectation_type >
+        typedef expectation<
+            R( BOOST_PP_ENUM_PARAMS( MOCK_NUM_ARGS, T ) )
+        > expectation_type;
+
+        struct wrapper : wrapper_base< R, expectation_type >
         {
             wrapper( const boost::shared_ptr< mutex >& m, expectation_type& e )
-                : wrapper_base< T, expectation_type >( e )
+                : wrapper_base< R, expectation_type >( e )
                 , lock_( m )
             {}
 
             wrapper once()
             {
-                this->e_->once();
+                this->e_->invoke( boost::make_shared< detail::once >() );
                 return *this;
             }
             wrapper never()
             {
-                this->e_->never();
+                this->e_->invoke( boost::make_shared< detail::never >() );
                 return *this;
             }
             wrapper exactly( std::size_t count )
             {
-                this->e_->exactly( count );
+                this->e_->invoke(
+                    boost::make_shared< detail::exactly >( count ) );
                 return *this;
             }
             wrapper at_least( std::size_t min )
             {
-                this->e_->at_least( min );
+                this->e_->invoke(
+                    boost::make_shared< detail::at_least >( min ) );
                 return *this;
             }
             wrapper at_most( std::size_t max )
             {
-                this->e_->at_most( max );
+                this->e_->invoke(
+                    boost::make_shared< detail::at_most >( max ) );
                 return *this;
             }
             wrapper between( std::size_t min, std::size_t max )
             {
-                this->e_->between( min, max );
+                this->e_->invoke(
+                    boost::make_shared< detail::between >( min, max ) );
                 return *this;
             }
 
@@ -140,12 +144,23 @@ namespace detail
                     BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, c) );
                 return *this;
             }
+#if MOCK_NUM_ARGS > 1
+            template< typename Constraint >
+            wrapper with( const Constraint& c )
+            {
+                this->e_->with( c );
+                return *this;
+            }
 #endif
+#endif
+
+#define MOCK_FUNCTION_IN_ADD(z, n, d) \
+    this->e_->add( s##n );
 
 #define MOCK_FUNCTION_IN(z, n, d) \
     wrapper in( BOOST_PP_ENUM_PARAMS(n, sequence& s) ) \
     { \
-        this->e_->in( BOOST_PP_ENUM_PARAMS(n, s) ); \
+        BOOST_PP_REPEAT(n, MOCK_FUNCTION_IN_ADD, _) \
         return *this; \
     }
 
@@ -153,6 +168,7 @@ namespace detail
                 MOCK_FUNCTION_IN, _)
 
 #undef MOCK_FUNCTION_IN
+#undef MOCK_FUNCTION_IN_ADD
 
             template< typename TT >
             void calls( TT t )
@@ -174,21 +190,21 @@ namespace detail
         };
 
     public:
-        typedef wrapper< R > wrapper_type;
+        typedef wrapper wrapper_type;
 
-        wrapper_type expect( const char* file, int line )
+        wrapper expect( const char* file, int line )
         {
             lock _( mutex_ );
             expectations_.push_back( expectation_type( file, line ) );
             valid_ = true;
-            return wrapper_type( mutex_, expectations_.back() );
+            return wrapper( mutex_, expectations_.back() );
         }
-        wrapper_type expect()
+        wrapper expect()
         {
             lock _( mutex_ );
             expectations_.push_back( expectation_type() );
             valid_ = true;
-            return wrapper_type( mutex_, expectations_.back() );
+            return wrapper( mutex_, expectations_.back() );
         }
 
         R operator()(
@@ -207,7 +223,7 @@ namespace detail
                             MOCK_FUNCTION_CONTEXT, it->file(), it->line() );
                         return error_type::abort();
                     }
-                    if( ! it->functor() )
+                    if( ! it->valid() )
                     {
                         error_type::fail( "missing action",
                             MOCK_FUNCTION_CONTEXT, it->file(), it->line() );
@@ -216,8 +232,10 @@ namespace detail
                     valid_ = true;
                     error_type::call(
                         MOCK_FUNCTION_CONTEXT, it->file(), it->line() );
-                    return it->functor()(
-                        BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, t) );
+                    if( it->functor() )
+                        return it->functor()(
+                            BOOST_PP_ENUM_PARAMS(MOCK_NUM_ARGS, t) );
+                    return it->trigger();
                 }
             error_type::fail( "unexpected call", MOCK_FUNCTION_CONTEXT );
             return error_type::abort();

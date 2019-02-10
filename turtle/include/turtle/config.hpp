@@ -6,6 +6,8 @@
 // (See accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 
+// boost-no-inspect
+
 #ifndef MOCK_CONFIG_HPP_INCLUDED
 #define MOCK_CONFIG_HPP_INCLUDED
 
@@ -20,8 +22,6 @@
 
 #ifndef MOCK_MAX_ARGS
 #   define MOCK_MAX_ARGS 9
-#elif BOOST_PP_LESS(9, MOCK_MAX_ARGS)
-#   define MOCK_USE_BOOST_PHOENIX
 #endif
 
 #ifndef MOCK_MAX_SEQUENCES
@@ -38,19 +38,6 @@
 #   define BOOST_FT_MAX_ARITY BOOST_PP_INC(MOCK_MAX_ARGS)
 #elif BOOST_PP_LESS_EQUAL(BOOST_FT_MAX_ARITY, MOCK_MAX_ARGS)
 #   error BOOST_FT_MAX_ARITY must be set to MOCK_MAX_ARGS + 1 or higher
-#endif
-
-#ifdef MOCK_USE_BOOST_PHOENIX
-#   ifndef BOOST_RESULT_OF_NUM_ARGS
-#       define BOOST_RESULT_OF_NUM_ARGS MOCK_MAX_ARGS
-#   elif BOOST_PP_LESS(BOOST_RESULT_OF_NUM_ARGS, MOCK_MAX_ARGS)
-#       error BOOST_RESULT_OF_NUM_ARGS must be set to MOCK_MAX_ARGS or higher
-#   endif
-#   ifndef PHOENIX_LIMIT
-#       define PHOENIX_LIMIT MOCK_MAX_ARGS
-#   elif BOOST_PP_LESS(PHOENIX_LIMIT, MOCK_MAX_ARGS)
-#       error PHOENIX_LIMIT must be set to MOCK_MAX_ARGS or higher
-#   endif
 #endif
 
 #if !defined(BOOST_NO_CXX11_NULLPTR) && !defined(BOOST_NO_NULLPTR)
@@ -86,6 +73,12 @@
 #if !defined(BOOST_NO_CXX11_HDR_MUTEX) && !defined(BOOST_NO_0X_HDR_MUTEX)
 #   ifndef MOCK_NO_HDR_MUTEX
 #      define MOCK_HDR_MUTEX
+#   endif
+#endif
+
+#if !defined(BOOST_NO_CXX11_LAMBDAS) && !defined(BOOST_NO_LAMBDAS)
+#   ifndef MOCK_NO_LAMBDAS
+#      define MOCK_LAMBDAS
 #   endif
 #endif
 
